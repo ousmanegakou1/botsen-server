@@ -2,6 +2,83 @@ const express = require('express');
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 
+// ═══════════════════════════════════════════════════════════
+// FEUILLE DE STYLE PARTAGÉE — direction premium
+// Chargée en fin de <head> sur toutes les pages, donc après
+// leurs styles propres : elle harmonise sans casser les mises
+// en page. Volontairement neutre sur les fonds pour rester
+// compatible avec les écrans sombres (administration).
+// ═══════════════════════════════════════════════════════════
+const PREMIUM_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --p-tx1:#202124; --p-tx2:#5F6368; --p-tx3:#80868B;
+  --p-line:#E8EAED; --p-line2:#DADCE0;
+  --p-bg:#FFFFFF; --p-sunken:#F8F9FA; --p-hover:#F1F3F4;
+  --p-ok:#1E8E3E; --p-warn:#B06000; --p-err:#D93025; --p-info:#1A73E8;
+  --p-r:8px; --p-r-lg:12px; --p-ez:cubic-bezier(.2,0,0,1);
+}
+
+/* Typographie : appliquée partout, claire comme sombre */
+body, button, input, select, textarea, .btn, .tab, table{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif !important;
+}
+body{
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  font-variant-numeric:tabular-nums; letter-spacing:-0.005em;
+}
+h1,h2,h3,h4,h5{ letter-spacing:-0.02em; font-weight:600 !important; }
+h1{ line-height:1.15 } h2{ line-height:1.2 } h3{ line-height:1.25 }
+b,strong{ font-weight:600 }
+
+/* Géométrie : rayons et transitions homogènes */
+button,.btn,.ba,.rb,input,select,textarea,.search,.card,.kpi,.pill,.badge{
+  border-radius:var(--p-r);
+  transition:background-color 150ms var(--p-ez), border-color 150ms var(--p-ez),
+             box-shadow 150ms var(--p-ez), opacity 150ms var(--p-ez);
+}
+.card,.kpi{ border-radius:var(--p-r-lg); box-shadow:none !important; }
+.pill,.badge{ border-radius:999px; font-weight:600; letter-spacing:.01em; }
+
+/* Boutons : on ne touche pas aux couleurs, seulement au comportement */
+button,.btn,.ba,.rb{ cursor:pointer; font-weight:500; }
+button:active,.btn:active,.ba:active{ transform:translateY(.5px); }
+button:disabled{ opacity:.5; cursor:not-allowed; }
+
+/* Champs : focus lisible et cohérent */
+input,select,textarea{ outline:none; }
+input:focus-visible,select:focus-visible,textarea:focus-visible,
+button:focus-visible,a:focus-visible{
+  outline:2px solid var(--p-info); outline-offset:2px;
+}
+
+table{ border-collapse:collapse; font-variant-numeric:tabular-nums; }
+th{ font-weight:600; letter-spacing:.03em; }
+
+/* Barres de défilement discrètes */
+*::-webkit-scrollbar{ width:8px; height:8px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background:rgba(128,134,139,.4); border-radius:4px; }
+*::-webkit-scrollbar-thumb:hover{ background:rgba(128,134,139,.65); }
+*{ scrollbar-width:thin; }
+
+::selection{ background:rgba(26,115,232,.18); }
+
+*{ -webkit-tap-highlight-color:transparent; }
+button,a,.tab,.ba{ touch-action:manipulation; }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+`;
+
+app.get('/premium.css', (req, res) => {
+  res.type('text/css');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(PREMIUM_CSS);
+});
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -79,7 +156,7 @@ const PLANS = {
   }
 };
 
-const appPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#f0f4f1;min-height:100vh}\nnav{background:#0a1a0f;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff}\n.logo b{color:#00c875}\n.wrap{max-width:960px;margin:0 auto;padding:32px 20px}\nh1{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#0a1a0f;margin-bottom:6px}\n.sub{font-size:14px;color:#5a7060;margin-bottom:28px}\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}\n.card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e5e7eb;transition:all .2s}\n.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}\n.ch{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}\n.cn{font-size:15px;font-weight:700;color:#0a1a0f}\n.cni{font-size:12px;color:#5a7060;text-transform:capitalize}\n.cb{display:flex;gap:6px}\n.ba{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;border:none;cursor:pointer;display:block;transition:opacity .15s}\n.ba:hover{opacity:.85}\n.bg{background:#00c875;color:#fff}\n.bo{background:#f0f4f1;color:#0a1a0f}\n.add{border:2px dashed #d1e5d8;border-radius:14px;padding:24px;text-align:center;cursor:pointer;background:#f9fdf9;transition:all .2s}\n.add:hover{border-color:#00c875;background:rgba(0,200,117,.04)}\n.empty{text-align:center;padding:40px;color:#9ab0a0;font-size:14px}\n.deco{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 16px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}\n.deco:hover{background:rgba(255,255,255,.15);color:#fff}\n.pill{background:rgba(0,200,117,.12);color:#00a862;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700}\n</style>\n</head>\n<body>\n<nav>\n  <div class=\"logo\">Sama<b>Bot</b></div>\n  <button class=\"deco\" id=\"deco\">Deconnexion</button>\n</nav>\n<div class=\"wrap\">\n  <h1>Mes bots</h1>\n  <div class=\"sub\" id=\"info\">Chargement...</div>\n  <div class=\"grid\" id=\"grid\"><div class=\"empty\">Chargement...</div></div>\n</div>\n<script>\n// 1. Logout\ndocument.getElementById('deco').onclick = function() {\n  localStorage.removeItem('sb-token');\n  localStorage.removeItem('sb-user');\n  fetch('/auth/logout', { method: 'POST' }).finally(function() {\n    window.location.replace('/login');\n  });\n};\n\n// 2. Recupere token depuis URL (Google OAuth / reset-password)\n(function() {\n  var hrf = window.location.href;\n  var tm = hrf.match(/[?&]token=([^&]+)/);\n  if (tm && tm[1]) {\n    localStorage.setItem('sb-token', tm[1]);\n    var um = hrf.match(/[?&]user=([^&]+)/);\n    if (um && um[1]) {\n      try { localStorage.setItem('sb-user', decodeURIComponent(um[1])); } catch(e) {}\n    }\n    history.replaceState({}, '', '/app');\n  }\n})();\n\n// 3. Verifie token via API avant d'afficher\nvar tk = localStorage.getItem('sb-token');\nif (!tk) {\n  window.location.replace('/login');\n} else {\n  // Valide le token cote serveur\n  fetch('/auth/test', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) { return r.json(); })\n    .then(function(d) {\n      if (!d.valid) {\n        localStorage.removeItem('sb-token');\n        localStorage.removeItem('sb-user');\n        window.location.replace('/login');\n        return;\n      }\n      // Token valide - charge les bots\n      loadBots();\n    })\n    .catch(function() {\n      loadBots(); // En cas d'erreur reseau, essaie quand meme\n    });\n}\n\nfunction loadBots() {\n  var grid = document.getElementById('grid');\n  var info = document.getElementById('info');\n  var tk = localStorage.getItem('sb-token');\n\n  fetch('/auth/my-bots', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) {\n      if (r.status === 401) {\n        localStorage.removeItem('sb-token');\n        window.location.replace('/login');\n        return null;\n      }\n      return r.json();\n    })\n    .then(function(bots) {\n      if (!bots) return;\n      if (!Array.isArray(bots)) {\n        info.textContent = bots.error || 'Erreur serveur';\n        grid.innerHTML = '<div class=\"empty\">' + (bots.error || 'Erreur') + '</div>';\n        return;\n      }\n      var userRaw = localStorage.getItem('sb-user') || '{}';\n      var user = {};\n      try { user = JSON.parse(userRaw); } catch(e) {}\n      info.innerHTML = '<span class=\"pill\">Plan ' + (user.plan || 'free') + '</span> &nbsp;' + bots.length + ' bot' + (bots.length !== 1 ? 's' : '');\n      var h = '';\n      for (var i = 0; i < bots.length; i++) {\n        var b = bots[i];\n        var av = b.logo_url\n          ? '<img src=\"' + b.logo_url + '\" style=\"width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0\" alt=\"\" />'\n          : '<div class=\"av\" style=\"background:' + (b.couleur || '#00c875') + '\">' + (b.emoji || '?') + '</div>';\n        h += '<div class=\"card\">';\n        h += '<div class=\"ch\">' + av + '<div><div class=\"cn\">' + b.nom + '</div><div class=\"cni\">' + b.niche + '</div></div></div>';\n        h += '<div class=\"cb\">';\n        h += '<a class=\"ba bo\" href=\"/chat/' + b.id + '\" target=\"_blank\">Chat</a>';\n        h += '<a class=\"ba bg\" href=\"/dashboard/' + b.id + '\">Dashboard</a>';\n        h += '</div></div>';\n      }\n      if (!bots.length) {\n        h = '<div class=\"empty\">Pas encore de bot. Creez votre premier bot!</div>';\n      }\n      h += '<div class=\"add\" id=\"addbtn\"><div style=\"font-size:28px;margin-bottom:6px\">+</div><div style=\"font-size:14px;font-weight:600;color:#5a7060\">Nouveau bot</div></div>';\n      grid.innerHTML = h;\n      document.getElementById('addbtn').onclick = function() { window.location.href = '/setup'; };\n    })\n    .catch(function(e) {\n      info.textContent = 'Erreur reseau';\n      grid.innerHTML = '<div class=\"empty\">Impossible de charger. Verifiez votre connexion.</div>';\n    });\n}\n</script>\n</body>\n</html>";
+const appPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#f0f4f1;min-height:100vh}\nnav{background:#0a1a0f;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff}\n.logo b{color:#00c875}\n.wrap{max-width:960px;margin:0 auto;padding:32px 20px}\nh1{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#0a1a0f;margin-bottom:6px}\n.sub{font-size:14px;color:#5a7060;margin-bottom:28px}\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}\n.card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e5e7eb;transition:all .2s}\n.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}\n.ch{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}\n.cn{font-size:15px;font-weight:700;color:#0a1a0f}\n.cni{font-size:12px;color:#5a7060;text-transform:capitalize}\n.cb{display:flex;gap:6px}\n.ba{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;border:none;cursor:pointer;display:block;transition:opacity .15s}\n.ba:hover{opacity:.85}\n.bg{background:#00c875;color:#fff}\n.bo{background:#f0f4f1;color:#0a1a0f}\n.add{border:2px dashed #d1e5d8;border-radius:14px;padding:24px;text-align:center;cursor:pointer;background:#f9fdf9;transition:all .2s}\n.add:hover{border-color:#00c875;background:rgba(0,200,117,.04)}\n.empty{text-align:center;padding:40px;color:#9ab0a0;font-size:14px}\n.deco{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 16px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}\n.deco:hover{background:rgba(255,255,255,.15);color:#fff}\n.pill{background:rgba(0,200,117,.12);color:#00a862;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700}\n</style>\n<link rel='stylesheet' href='/premium.css'></head>\n<body>\n<nav>\n  <div class=\"logo\">Sama<b>Bot</b></div>\n  <button class=\"deco\" id=\"deco\">Deconnexion</button>\n</nav>\n<div class=\"wrap\">\n  <h1>Mes bots</h1>\n  <div class=\"sub\" id=\"info\">Chargement...</div>\n  <div class=\"grid\" id=\"grid\"><div class=\"empty\">Chargement...</div></div>\n</div>\n<script>\n// 1. Logout\ndocument.getElementById('deco').onclick = function() {\n  localStorage.removeItem('sb-token');\n  localStorage.removeItem('sb-user');\n  fetch('/auth/logout', { method: 'POST' }).finally(function() {\n    window.location.replace('/login');\n  });\n};\n\n// 2. Recupere token depuis URL (Google OAuth / reset-password)\n(function() {\n  var hrf = window.location.href;\n  var tm = hrf.match(/[?&]token=([^&]+)/);\n  if (tm && tm[1]) {\n    localStorage.setItem('sb-token', tm[1]);\n    var um = hrf.match(/[?&]user=([^&]+)/);\n    if (um && um[1]) {\n      try { localStorage.setItem('sb-user', decodeURIComponent(um[1])); } catch(e) {}\n    }\n    history.replaceState({}, '', '/app');\n  }\n})();\n\n// 3. Verifie token via API avant d'afficher\nvar tk = localStorage.getItem('sb-token');\nif (!tk) {\n  window.location.replace('/login');\n} else {\n  // Valide le token cote serveur\n  fetch('/auth/test', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) { return r.json(); })\n    .then(function(d) {\n      if (!d.valid) {\n        localStorage.removeItem('sb-token');\n        localStorage.removeItem('sb-user');\n        window.location.replace('/login');\n        return;\n      }\n      // Token valide - charge les bots\n      loadBots();\n    })\n    .catch(function() {\n      loadBots(); // En cas d'erreur reseau, essaie quand meme\n    });\n}\n\nfunction loadBots() {\n  var grid = document.getElementById('grid');\n  var info = document.getElementById('info');\n  var tk = localStorage.getItem('sb-token');\n\n  fetch('/auth/my-bots', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) {\n      if (r.status === 401) {\n        localStorage.removeItem('sb-token');\n        window.location.replace('/login');\n        return null;\n      }\n      return r.json();\n    })\n    .then(function(bots) {\n      if (!bots) return;\n      if (!Array.isArray(bots)) {\n        info.textContent = bots.error || 'Erreur serveur';\n        grid.innerHTML = '<div class=\"empty\">' + (bots.error || 'Erreur') + '</div>';\n        return;\n      }\n      var userRaw = localStorage.getItem('sb-user') || '{}';\n      var user = {};\n      try { user = JSON.parse(userRaw); } catch(e) {}\n      info.innerHTML = '<span class=\"pill\">Plan ' + (user.plan || 'free') + '</span> &nbsp;' + bots.length + ' bot' + (bots.length !== 1 ? 's' : '');\n      var h = '';\n      for (var i = 0; i < bots.length; i++) {\n        var b = bots[i];\n        var av = b.logo_url\n          ? '<img src=\"' + b.logo_url + '\" style=\"width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0\" alt=\"\" />'\n          : '<div class=\"av\" style=\"background:' + (b.couleur || '#00c875') + '\">' + (b.emoji || '?') + '</div>';\n        h += '<div class=\"card\">';\n        h += '<div class=\"ch\">' + av + '<div><div class=\"cn\">' + b.nom + '</div><div class=\"cni\">' + b.niche + '</div></div></div>';\n        h += '<div class=\"cb\">';\n        h += '<a class=\"ba bo\" href=\"/chat/' + b.id + '\" target=\"_blank\">Chat</a>';\n        h += '<a class=\"ba bg\" href=\"/dashboard/' + b.id + '\">Dashboard</a>';\n        h += '</div></div>';\n      }\n      if (!bots.length) {\n        h = '<div class=\"empty\">Pas encore de bot. Creez votre premier bot!</div>';\n      }\n      h += '<div class=\"add\" id=\"addbtn\"><div style=\"font-size:28px;margin-bottom:6px\">+</div><div style=\"font-size:14px;font-weight:600;color:#5a7060\">Nouveau bot</div></div>';\n      grid.innerHTML = h;\n      document.getElementById('addbtn').onclick = function() { window.location.href = '/setup'; };\n    })\n    .catch(function(e) {\n      info.textContent = 'Erreur reseau';\n      grid.innerHTML = '<div class=\"empty\">Impossible de charger. Verifiez votre connexion.</div>';\n    });\n}\n</script>\n</body>\n</html>";
 
 const STORAGE_URL = `${CONFIG.SUPABASE_URL}/storage/v1`;
 const BUCKET = 'samabot-media';
@@ -481,6 +558,66 @@ function detectLang(text) {
   return 'Autre';
 }
 
+// ─── LECTURE D'UN MONTANT DANS UN TEXTE ──────────────────────
+// Sert de filet quand le modèle n'a pas isolé le total :
+// "Café arabica = 5 000 FCFA + livraison 1 000 FCFA = total 6 000 FCFA" → 6000
+function montantDepuisTexte(texte) {
+  if (!texte) return 0;
+  const s = String(texte);
+
+  // 1) La mention explicite "total X FCFA" fait foi
+  let m = s.match(/total\s*[:=]?\s*([0-9][0-9\s.,]*)\s*(?:fcfa|cfa|f\b)/i);
+  if (m) {
+    const n = parseInt(m[1].replace(/[\s.,]/g, ''), 10);
+    if (n > 0) return n;
+  }
+
+  // 2) Sinon, le dernier montant cité est le total dans "X + Y = Z"
+  const tous = [...s.matchAll(/([0-9][0-9\s.,]*)\s*(?:fcfa|cfa|f\b)/gi)];
+  if (tous.length) {
+    const n = parseInt(tous[tous.length - 1][1].replace(/[\s.,]/g, ''), 10);
+    if (n > 0) return n;
+  }
+
+  return 0;
+}
+
+// ─── VALIDATION D'UN NUMÉRO SÉNÉGALAIS ───────────────────────
+// Empêche l'enregistrement d'un numéro inventé par le modèle.
+function telSenegalValide(tel) {
+  if (!tel) return false;
+  const net = String(tel).replace(/[\s+\-().]/g, '');
+  return /^(221)?7[05678][0-9]{7}$/.test(net);
+}
+
+// ─── NETTOYAGE DES RÉPONSES ──────────────────────────────────
+// Retire les marqueurs qui trahissent une IA et que le modèle
+// produit parfois malgré les consignes du prompt.
+// Ne retire QUE des pictogrammes : jamais une lettre, jamais un chiffre.
+const RE_PICTO_DEBUT = /^(?:[\p{Extended_Pictographic}\p{Emoji_Presentation}️‍⃣]|[\u{1F1E6}-\u{1F1FF}])+\s*/u;
+
+function nettoyerReponse(texte) {
+  if (typeof texte !== 'string') return texte;
+  let out = texte
+    .split('\n')
+    .map(l => l.replace(RE_PICTO_DEBUT, '').trimEnd())
+    .join('\n');
+
+  out = out
+    .replace(/\*\*(.+?)\*\*/g, '$1')                       // gras markdown
+    .replace(/(^|\s)\*([^*\n]+?)\*(?=[\s.,;:!?)]|$)/g, '$1$2') // gras WhatsApp
+    .replace(/^#{1,6}\s+/gm, '')                            // titres
+    .replace(/!{2,}/g, '!')
+    .replace(/\?{2,}/g, '?')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  // Formules d'enthousiasme en tête de message
+  out = out.replace(/^(Parfait|Super|Excellent(?: choix)?|Génial|Formidable|Très bien)\s*[!.,]\s*/i, '');
+
+  return out.trim();
+}
+
 async function callAI(prompt, sid, message, retries=2, attempt=1) {
   // N'ajoute le message à l'historique qu'au premier essai (évite duplication)
   if (attempt === 1) addHist(sid, 'user', message);
@@ -529,7 +666,8 @@ async function callAI(prompt, sid, message, retries=2, attempt=1) {
 
     const data = await res.json();
     if (!data.choices?.[0]?.message?.content) throw new Error('OpenAI: empty response');
-    const reply = data.choices[0].message.content;
+    // Filet de sécurité: le prompt fait l'essentiel, ceci rattrape les écarts
+    const reply = nettoyerReponse(data.choices[0].message.content);
     addHist(sid, 'assistant', reply);
     return reply;
   } catch(err) {
@@ -1250,7 +1388,7 @@ app.post('/promos/:botId/unique', async (req, res) => {
     };
     const out = await db.insert('promos', data);
     // Envoyer le code au client par WhatsApp si tel valide
-    if (client_tel && CONFIG.WASENDER_API_KEY) {
+    if (client_tel && WASENDER_ENABLED && CONFIG.WASENDER_API_KEY) {
       const botNom = bots?.[0]?.nom || 'Notre service';
       const reduc = reduction_type === 'pct' ? `${reduction_value}%` : `${parseInt(reduction_value).toLocaleString('fr-FR')} FCFA`;
       const msg = `🎁 *${botNom}* — Code promo personnel\n\nVotre code: *${code}*\nRéduction: *${reduc}*\n${expire_at?`⏰ Valide jusqu'au ${new Date(expire_at).toLocaleDateString('fr-FR')}\n`:''}${description?`\n${description}\n`:''}\nUtilisez-le lors de votre prochaine commande! Jërëjëf 🙏`;
@@ -1370,7 +1508,7 @@ async function sendRecapEmail(bot, recap, periodLabel, periodIcon) {
   const growthColor = growth >= 0 ? '#10b981' : '#ef4444';
   const growthIcon = growth >= 0 ? '📈' : '📉';
   const growthSign = growth >= 0 ? '+' : '';
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;background:#f5f7f6;font-family:-apple-system,sans-serif">
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head><body style="margin:0;background:#f5f7f6;font-family:-apple-system,sans-serif">
   <div style="max-width:600px;margin:0 auto;background:#fff">
     <div style="background:linear-gradient(135deg,${bot.couleur||'#00c875'},#0a1a0f);padding:30px 24px;color:#fff;text-align:center">
       <div style="font-size:40px;margin-bottom:10px">${periodIcon}</div>
@@ -1586,8 +1724,10 @@ async function birthdayReminders() {
     try {
       // PostgREST: filter sur to_char(date_naissance, 'MM-DD') = monthDay
       // Comme c'est complexe en REST, on fait simple: récupère tous les clients et filtre côté code
-      clients = await db.select('clients_birthdays', `?notif_envoyee_${today.getFullYear()}=is.null&limit=500`) || [];
+      const res = await db.select('clients_birthdays', `?notif_envoyee_${today.getFullYear()}=is.null&limit=500`);
+      clients = Array.isArray(res) ? res : [];
     } catch(e) { return; /* Table n'existe pas, pas grave */ }
+    if (!clients.length) return;
 
     for (const client of clients) {
       if (!client.date_naissance) continue;
@@ -1706,7 +1846,7 @@ async function notifyClientStatut(commandeId, statut) {
     // Email au client si on a son email
     if (cmd.client_email && CONFIG.RESEND_API_KEY) {
       const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
+<html><head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head>
 <body style="font-family:-apple-system,sans-serif;background:#f5f5f5;padding:20px;margin:0">
   <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:${bot.couleur||'#00c875'};padding:20px;text-align:center">
@@ -1972,7 +2112,7 @@ app.post('/broadcast/send', async (req, res) => {
     for (const conv of convs) {
       try {
         // Envoie via WhatsApp si numéro disponible
-        if (conv.client_tel && CONFIG.WASENDER_API_KEY) {
+        if (conv.client_tel && WASENDER_ENABLED && CONFIG.WASENDER_API_KEY) {
           const waMsg = `📣 *${bot.nom}*\n\n${message}`;
           const ok = await sendWhatsApp(conv.client_tel, waMsg);
           if (ok) sent++;
@@ -2079,7 +2219,7 @@ textarea.b-msg:focus{border-color:#00c875}
 .b-cancel{background:#f0f4f1;color:#0a1a0f;border:none;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 @media(max-width:600px){.conv-list{width:100%;display:block}.chat-area{display:none}.conv-list.hide{display:none}.chat-area.show{display:flex}}
 </style>
-</head>
+<link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="nav">
   <div class="logo">Sama<span>Bot</span></div>
@@ -2793,10 +2933,22 @@ async function sendEmail(to, subject, html) {
   }
 }
 
-// Envoie un vrai message WhatsApp via WaSenderAPI
+// Envoi WhatsApp — désactivé par défaut, voir WASENDER_ENABLED ci-dessous
+// ─── ENVOI WHATSAPP ──────────────────────────────────────────
+// Mode manuel par défaut : aucun envoi automatique n'est effectué.
+// Le serveur journalise un lien wa.me prêt à cliquer, et l'email
+// de notification part normalement.
+// Pour réactiver l'envoi automatique un jour, il suffit de définir
+// la variable d'environnement WASENDER_ENABLED=true.
+const WASENDER_ENABLED = String(process.env.WASENDER_ENABLED || '').toLowerCase() === 'true';
+
 async function sendWhatsApp(to, message) {
+  if (!WASENDER_ENABLED) {
+    console.log(`WhatsApp manuel → ${to} : ${whatsappNotifUrl(to, message)}`);
+    return false;
+  }
   if (!CONFIG.WASENDER_API_KEY) {
-    console.log(`📱 WhatsApp simulé (pas de WASENDER_API_KEY) → ${to}: ${message.substring(0,60)}...`);
+    console.log(`WhatsApp non configuré (WASENDER_API_KEY absente) → ${to}`);
     return false;
   }
   try {
@@ -2987,7 +3139,7 @@ async function notifyPatron(botId, commande) {
       const html = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"></head>
+<head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head>
 <body style="font-family:-apple-system,sans-serif;background:#f5f5f5;padding:20px;margin:0">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:#0a1a0f;padding:20px 24px;display:flex;align-items:center;gap:10px">
@@ -3061,7 +3213,7 @@ async function notifyRdv(botId, rdv) {
       const html = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"></head>
+<head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head>
 <body style="font-family:-apple-system,sans-serif;background:#f5f5f5;padding:20px;margin:0">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:#0a1a0f;padding:20px 24px">
@@ -3118,7 +3270,7 @@ async function sendConfirmationClient(botId, commande, clientEmail) {
     const numero = commande.numero || 'CMD-???';
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
+<html><head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head>
 <body style="font-family:-apple-system,sans-serif;background:#f5f5f5;padding:20px;margin:0">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:${bot.couleur||'#00c875'};padding:24px;text-align:center">
@@ -3171,7 +3323,7 @@ async function sendConfirmationRdvClient(botId, rdv, clientEmail) {
     const dateLabel = new Date(rdv.date+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
     const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
+<html><head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head>
 <body style="font-family:-apple-system,sans-serif;background:#f5f5f5;padding:20px;margin:0">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:${bot.couleur||'#00c875'};padding:24px;text-align:center">
@@ -3250,7 +3402,14 @@ async function createOrderFromConfirmation(botId, sessionId, total, bot, recapTe
     };
 
     // 🎁 Appliquer le code promo si fourni
+    // Le modèle ne renvoie pas toujours un montant exploitable : dans ce cas
+    // on le relit depuis le texte de l'article ("… = total 6 000 FCFA").
+    // Sans ce filet, la commande partait à 0 FCFA dans l'email et le tableau de bord.
     let originalTotal = total || 0;
+    if (!originalTotal && finalInfos.article) {
+      originalTotal = montantDepuisTexte(finalInfos.article);
+      if (originalTotal) console.log(`Total relu depuis l'article : ${originalTotal} FCFA`);
+    }
     let promoReduction = 0;
     let promoCode = null;
     if (promo && originalTotal > 0) {
@@ -3642,25 +3801,25 @@ function getEmoji(n) {
 }
 function getQR(n) {
   return {
-    restaurant:   ['🍛 Voir le menu','📦 Commander','🛵 Livraison','📍 Adresse','🕐 Horaires'],
-    traiteur:     ['🍲 Notre menu','📦 Commander','🚚 Livraison','📍 Adresse','🕐 Horaires'],
-    boulangerie:  ['🥖 Nos produits','📦 Commander','📍 Adresse','🕐 Horaires'],
-    salon:        ['📅 Prendre RDV','💅 Nos services','💰 Tarifs','📍 Adresse','📞 Nous appeler'],
-    clinique:     ['🚨 Urgence','📅 RDV médecin','👨‍⚕️ Nos médecins','💰 Tarifs','📍 Adresse'],
-    pharmacie:    ['💊 Médicaments','🕐 Horaires','📍 Adresse','📞 Urgence'],
-    boutique:     ['✨ Nouveautés','🔥 Promotions','📦 Commander','🚚 Livraison','📍 Adresse'],
-    'auto-ecole': ['📝 S\'inscrire','💰 Tarifs','📅 Calendrier','📍 Adresse','📞 Contact'],
-    immobilier:   ['🏠 Nos biens','📅 Visite','💰 Prix','📍 Localisation','📞 Contact'],
-    assurance:    ['🛡️ Nos produits','💰 Tarifs','📋 Devis gratuit','📅 RDV conseiller','📞 Contact'],
-    banque:       ['💳 Nos services','💰 Tarifs','📅 RDV conseiller','📍 Agences','📞 Contact'],
-    hotel:        ['🏨 Disponibilités','💰 Tarifs','📅 Réserver','📍 Localisation','📞 Contact'],
-    transport:    ['🚗 Réserver','💰 Tarifs','📍 Localisation','📞 Contact'],
-    education:    ['📚 Nos formations','💰 Frais','📝 S\'inscrire','📅 Planning','📞 Contact'],
-    fitness:      ['💪 Nos programmes','💰 Abonnements','📅 Essai gratuit','📍 Adresse','📞 Contact'],
-    informatique: ['💻 Nos services','💰 Devis','🔧 Support','📍 Adresse','📞 Contact'],
-    evenement:    ['🎉 Nos prestations','💰 Tarifs','📅 Disponibilités','📍 Contact'],
-    autre:        ['💬 Nos services','💰 Tarifs','📅 RDV','📍 Adresse','📞 Contact'],
-  }[n] || ['💬 Nos services','💰 Tarifs','📍 Adresse','📞 Contact'];
+    restaurant:   ['Voir le menu','Commander','Livraison','Adresse','Horaires'],
+    traiteur:     ['Notre menu','Commander','Livraison','Adresse','Horaires'],
+    boulangerie:  ['Nos produits','Commander','Adresse','Horaires'],
+    salon:        ['Prendre rendez-vous','Nos prestations','Tarifs','Adresse','Nous appeler'],
+    clinique:     ['Urgence','Rendez-vous','Nos médecins','Tarifs','Adresse'],
+    pharmacie:    ['Médicaments','Horaires','Adresse','Garde'],
+    boutique:     ['Nouveautés','Promotions','Commander','Livraison','Adresse'],
+    'auto-ecole': ['S\'inscrire','Tarifs','Calendrier','Adresse','Contact'],
+    immobilier:   ['Nos biens','Visite','Prix','Localisation','Contact'],
+    assurance:    ['Nos produits','Tarifs','Devis gratuit','Rendez-vous','Contact'],
+    banque:       ['Nos services','Tarifs','Rendez-vous','Agences','Contact'],
+    hotel:        ['Disponibilités','Tarifs','Réserver','Localisation','Contact'],
+    transport:    ['Réserver','Tarifs','Localisation','Contact'],
+    education:    ['Nos formations','Frais','S\'inscrire','Planning','Contact'],
+    fitness:      ['Nos programmes','Abonnements','Essai gratuit','Adresse','Contact'],
+    informatique: ['Nos services','Devis','Support','Adresse','Contact'],
+    evenement:    ['Nos prestations','Tarifs','Disponibilités','Contact'],
+    autre:        ['Nos services','Tarifs','Rendez-vous','Adresse','Contact'],
+  }[n] || ['Nos services','Tarifs','Adresse','Contact'];
 }
 function makePrompt(bot) {
   const cat = bot.catalogue?.length ? `\nCATALOGUE:\n${bot.catalogue.map(p=>`- ${p.nom}: ${p.prix.toLocaleString('fr-FR')} FCFA${p.desc?' ('+p.desc+')':''}`).join('\n')}` : '';
@@ -3670,9 +3829,11 @@ function makePrompt(bot) {
 - Zones: ${bot.livraison_zones||'Dakar'}
 ${bot.livraison_min>0?`- Commande minimum: ${bot.livraison_min.toLocaleString('fr-FR')} FCFA`:''}` : '\n- Pas de livraison disponible (vente sur place uniquement)';
 
-  return `Tu es l'assistant IA officiel de "${bot.nom}" à Dakar, Sénégal.
-Tu parles français et wolof naturellement. Réponds TOUJOURS dans la même langue que le client.
-Tu es chaleureux, professionnel et efficace. Réponds en 2-4 phrases max.
+  return `Tu réponds aux clients de "${bot.nom}", à Dakar.
+Tu écris comme le responsable de l'établissement écrirait lui-même sur WhatsApp :
+court, direct, sans esbroufe. Une à trois phrases. Jamais de pavé.
+Tu parles français et wolof. Réponds dans la langue du dernier message reçu,
+et si le client mélange les deux, mélange aussi. Vouvoiement par défaut.
 
 INFOS DU BUSINESS:
 - Nom: ${bot.nom} | Secteur: ${bot.niche}
@@ -3695,24 +3856,19 @@ FLUX DE COMMANDE STRICT — respecte CET ORDRE EXACT:
   → Demande SES INFORMATIONS: "Pour finaliser, j'ai besoin de:\\n• Votre prénom\\n• Votre numéro de téléphone\\n• Votre adresse de livraison (utilisez le bouton GPS ci-dessous)\\n• Votre email (optionnel, pour la confirmation)"
 
 ÉTAPE 3 — Client donne ses infos:
-  → Fais un RÉCAPITULATIF COMPLET avec ce format EXACT:
-    "📋 *Récapitulatif de votre commande:*\\n
-    👤 Nom: [prénom]\\n
-    📞 Téléphone: [numéro]\\n
-    📍 Adresse: [adresse]\\n
-    📧 Email: [email ou 'non fourni']\\n
-    🛍️ Article: [article]\\n
-    💰 *Total: [montant] FCFA*\\n
-    🛵 Livraison: ${bot.livraison_delai||'30-45 min'}\\n\\n
-    Confirmez-vous votre commande? Répondez *OUI* pour valider ou dites-moi ce qu'il faut modifier."
+  → Récapitule en UNE PHRASE NATURELLE, jamais en tableau à étiquettes.
+    Modèle: "Donc [article], [montant] F${bot.livraison_actif?' livraison comprise':''}, au nom de [prénom]${bot.livraison_actif?' à [adresse]':''}. Je valide ?"
+    S'il y a plusieurs articles, une ligne par article, sans étiquette ni symbole.
+  → INTERDIT: écrire "Récapitulatif", "Nom :", "Téléphone :", "Total :", ou tout émoji.
+  → N'inscris JAMAIS une donnée que le client ne t'a pas donnée. Redemande-la.
 
 ÉTAPE 4 — Client confirme (dit "oui", "confirme", "valider", "c'est bon", etc.):
-  → Réponds EXACTEMENT: "✅ *Commande confirmée!* Référence: à venir. Vous allez recevoir une confirmation par email/WhatsApp. Comment souhaitez-vous payer?"
-  → Propose les paiements: Wave, Orange Money, à la livraison
+  → Réponds sobrement, sans coche ni gras: "C'est noté. Comment souhaitez-vous payer ?"
+  → Propose uniquement les paiements acceptés par cet établissement.
 
 ÉTAPE 5 — Client choisit le paiement:
-  → Confirme la méthode: "Parfait! Paiement par [méthode] noté."
-  → Donne le délai final: "Votre commande sera livrée dans ${bot.livraison_delai||'30-45 min'}. Jërëjëf!"
+  → Confirme en une phrase, sans "Parfait" ni "Excellent":
+    "[Méthode] , entendu. Livraison dans ${bot.livraison_delai||'30-45 min'}. Jërëjëf [prénom]."
 
 RÈGLES IMPORTANTES:
 - TOUJOURS faire le RÉCAPITULATIF avant de demander confirmation (étape 3)
@@ -3984,7 +4140,7 @@ table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
 th{text-align:left;padding:8px;background:#f0f4f1;color:#3a5040;font-size:11px;text-transform:uppercase}
 td{padding:8px;border-top:1px solid #f0f4f1;color:#0a1a0f}
 td code{background:#f0f4f1;padding:2px 6px;border-radius:3px;font-family:monospace;font-size:12px}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="hd">
   <h1>🤖 API SamaBot v1</h1>
@@ -4238,7 +4394,7 @@ td{padding:10px;border-top:1px solid #f0f4f1;color:#0a1a0f}
 .method-card p{font-size:12px;color:#5a7060}
 .recommend{border-color:#00c875;background:#f0fdf4;position:relative}
 .recommend::before{content:'⭐ RECOMMANDÉ';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#00c875;color:#000;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:800}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="hd">
   <div class="hd-logo">📝</div>
@@ -4516,7 +4672,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f7f6;
   .hd h1{font-size:28px}
   .plan-price{font-size:28px}
 }
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="hd">
   <h1>💰 Tarifs simples & transparents</h1>
@@ -4772,7 +4928,7 @@ app.get('/billing/success', async (req, res) => {
 .box{background:#fff;border-radius:16px;padding:40px;text-align:center;max-width:480px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
 .box h1{color:#00c875;font-size:30px;margin:14px 0 8px}
 .box p{color:#5a7060;line-height:1.6}
-.btn{display:inline-block;background:#00c875;color:#000;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:800;margin-top:20px}</style></head>
+.btn{display:inline-block;background:#00c875;color:#000;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:800;margin-top:20px}</style><link rel='stylesheet' href='/premium.css'></head>
 <body><div class="box">
 <div style="font-size:60px">🎉</div>
 <h1>Paiement réussi!</h1>
@@ -4930,7 +5086,7 @@ h1{font-size:24px;font-weight:800;margin-bottom:6px}
 .btn-danger{background:#fff;color:#dc2626;border:1px solid #fca5a5}
 .feature{padding:6px 0;font-size:13px;color:#3a5040}
 .feature::before{content:"✓ ";color:#00c875;font-weight:800}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 <div class="wrap">
   <h1>💳 Mon abonnement</h1>
   <div class="sub">${bot.emoji||'🤖'} <strong>${bot.nom}</strong></div>
@@ -5155,7 +5311,7 @@ app.post('/bot/create', async (req, res) => {
 
 // Email de bienvenue avec tutoriel 3 étapes
 async function sendWelcomeEmail(bot, botId) {
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;background:#f5f7f6;font-family:-apple-system,BlinkMacSystemFont,sans-serif">
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><link rel='stylesheet' href='/premium.css'></head><body style="margin:0;background:#f5f7f6;font-family:-apple-system,BlinkMacSystemFont,sans-serif">
   <div style="max-width:600px;margin:0 auto;background:#fff">
     <div style="background:linear-gradient(135deg,${bot.couleur||'#00c875'} 0%,#0a1a0f 100%);padding:40px 24px;color:#fff;text-align:center">
       <div style="font-size:50px;margin-bottom:10px">🎉</div>
@@ -5397,8 +5553,91 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f1;min-height:100vh;color:
 .empty{text-align:center;color:#9ab0a0;font-size:13px;padding:20px;font-style:italic}
 select{font-size:11px;border-radius:6px;border:1px solid #d1e5d8;padding:3px 6px;cursor:pointer;margin-top:3px;font-family:'DM Sans',sans-serif;background:#fff}
 @media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.wrap{padding:12px}}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM DU TABLEAU DE BORD
+   Neutres froids, accent réservé aux actions et aux données.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --d-bg:#FFFFFF; --d-sunken:#F8F9FA; --d-hover:#F1F3F4; --d-active:#E8EAED;
+  --d-tx1:#202124; --d-tx2:#5F6368; --d-tx3:#80868B;
+  --d-line:#E8EAED; --d-line2:#DADCE0;
+  --d-ok:#1E8E3E; --d-ok-bg:#E6F4EA; --d-warn:#B06000; --d-warn-bg:#FEF7E0;
+  --d-err:#D93025; --d-err-bg:#FCE8E6; --d-info:#1A73E8; --d-info-bg:#E8F0FE;
+}
+body{background:var(--d-sunken);color:var(--d-tx1)}
+
+/* En-tête : blanc, ligne fine, plus de bandeau sombre */
+.topbar{
+  background:var(--d-bg);border-bottom:1px solid var(--d-line);
+  box-shadow:none;color:var(--d-tx1);
+}
+.topbar .logo,.logo{color:var(--d-tx1);font-weight:600;letter-spacing:-.02em}
+.bot-nm{color:var(--d-tx1);font-weight:600}
+.bot-badge,.badge{background:var(--d-active);color:var(--d-tx2);font-weight:550;font-size:11.5px}
+.bot-ava-sm,.bot-logo-sm{border:1px solid var(--d-line);border-radius:8px}
+.live{color:var(--d-tx3);font-size:12px}
+.live-dot{background:var(--d-ok)}
+
+.wrap{max-width:1200px}
+
+/* Cartes et indicateurs */
+.card,.stat,.cmd-card{
+  background:var(--d-bg);border:1px solid var(--d-line);border-radius:12px;
+  box-shadow:none;transition:border-color 150ms var(--p-ez);
+}
+.card:hover,.cmd-card:hover{border-color:var(--d-line2)}
+.card-title{font-size:14px;font-weight:600;color:var(--d-tx1);letter-spacing:-.01em}
+.stat-val{font-size:26px;font-weight:600;color:var(--d-tx1);letter-spacing:-.028em;line-height:1.15}
+.stat-lbl{font-size:12px;color:var(--d-tx2);font-weight:450}
+.stat-sub{font-size:11.5px;color:var(--d-tx3)}
+
+/* Onglets */
+.tab-btns{border-bottom:1px solid var(--d-line);gap:2px}
+.tab-btn{
+  color:var(--d-tx2);font-weight:450;font-size:13.5px;
+  border-bottom:2px solid transparent;background:transparent;border-radius:0;
+}
+.tab-btn:hover{color:var(--d-tx1);background:transparent}
+.tab-btn.active{color:var(--d-tx1);border-bottom-color:var(--d-tx1);font-weight:600}
+
+/* Boutons */
+.btn{font-size:13px;font-weight:500;border-radius:8px;padding:8px 14px;border:1px solid transparent}
+.btn-p{background:var(--d-tx1);color:#fff;border-color:var(--d-tx1)}
+.btn-p:hover{background:#000;opacity:1}
+.btn-g{background:var(--d-bg);color:var(--d-tx1);border-color:var(--d-line2)}
+.btn-g:hover{background:var(--d-hover)}
+.cp{background:var(--d-bg);color:var(--d-tx2);border:1px solid var(--d-line2);border-radius:6px;font-weight:500}
+.cp:hover{background:var(--d-hover);color:var(--d-tx1)}
+
+/* Commandes */
+.cmd-num{font-weight:600;color:var(--d-tx1);font-size:13.5px}
+.cmd-date{color:var(--d-tx3);font-size:11.5px}
+.cmd-info-label{color:var(--d-tx3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.cmd-info-val{color:var(--d-tx1);font-size:13.5px;font-weight:450}
+.cmd-info-icon{color:var(--d-tx3)}
+.price{color:var(--d-tx1);font-weight:600}
+.row-sub{color:var(--d-tx2);font-size:12.5px}
+.msg-text{color:var(--d-tx1);font-size:13.5px;line-height:1.55}
+.msg-time{color:var(--d-tx3);font-size:11px}
+
+/* Alertes et pastilles : sémantique sobre */
+.alert{background:var(--d-warn-bg);color:var(--d-warn);border:1px solid rgba(176,96,0,.2);border-radius:8px;font-weight:500}
+.audio-pill{background:var(--d-info-bg);color:#174EA6;font-weight:550;border-radius:999px}
+.stars{color:var(--d-warn)}
+.empty{color:var(--d-tx3);font-style:normal;font-size:13px}
+
+/* Champs */
+select,input,textarea{
+  border:1px solid var(--d-line2);border-radius:8px;background:var(--d-bg);
+  color:var(--d-tx1);font-size:13px;padding:7px 10px;
+}
+select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
+
+.qr-img{border:1px solid var(--d-line);border-radius:12px}
+.copy-area{background:var(--d-sunken);border:1px solid var(--d-line);border-radius:8px;color:var(--d-tx1)}
 </style>
-</head>
+<link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="topbar">
   <div class="logo">Sama<span>Bot</span></div>
@@ -5624,7 +5863,7 @@ select{font-size:11px;border-radius:6px;border:1px solid #d1e5d8;padding:3px 6px
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
           <img id="cat-new-img-preview" src="" style="width:50px;height:50px;border-radius:8px;object-fit:cover;display:none;border:1px solid #d1e5d8"/>
           <label style="padding:7px 12px;background:#fff;border:1.5px dashed #d1e5d8;border-radius:8px;font-size:12px;color:#5a7060;cursor:pointer">
-            📷 Photo (optionnelle)
+            Photo (optionnelle)
             <input type="file" accept="image/*" style="display:none" onchange="catUploadNewImg(this)"/>
           </label>
           <input id="cat-new-emoji" placeholder="🛍️" maxlength="2" style="width:50px;padding:9px;border:1.5px solid #d1e5d8;border-radius:8px;font-size:18px;text-align:center;font-family:inherit"/>
@@ -6636,12 +6875,124 @@ textarea{min-height:80px;resize:vertical}
 .rb{flex:1;min-width:130px;padding:11px;border-radius:10px;font-size:13px;font-weight:700;text-align:center;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;border:none}
 .rb-g{background:#00c875;color:#fff}.rb-o{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
 @media(max-width:480px){.row2{grid-template-columns:1fr}.niches{grid-template-columns:repeat(2,1fr)}.cat-item{grid-template-columns:1fr 70px auto}}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — création de bot
+   Neutres froids, accent vert réservé aux actions et à l'étape
+   en cours. Bandeau sombre remplacé par un en-tête blanc.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --s-bg:#FFFFFF; --s-sunken:#F8F9FA; --s-hover:#F1F3F4; --s-active:#E8EAED;
+  --s-tx1:#1A1D1F; --s-tx2:#5F6368; --s-tx3:#8A9099;
+  --s-line:#E8EAED; --s-line2:#DADCE0;
+  --s-brand:#06A85A; --s-brand-tx:#04713C; --s-brand-tint:#EDF9F2;
+  --s-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--s-sunken);color:var(--s-tx1)}
+
+/* En-tête : blanc, ligne fine, plus de bandeau sombre */
+.hd{
+  background:var(--s-bg);border-bottom:1px solid var(--s-line);
+  padding:0 24px;height:64px;position:sticky;top:0;z-index:20;
+}
+.logo{font-size:17px;font-weight:600;color:var(--s-tx1);letter-spacing:-.02em}
+.logo span{color:var(--s-brand)}
+
+.wrap{max-width:680px;padding:40px 20px 64px}
+h1{font-size:26px;font-weight:600;color:var(--s-tx1);letter-spacing:-.03em;line-height:1.15;margin-bottom:8px}
+.sub{font-size:14.5px;color:var(--s-tx2);margin-bottom:32px;line-height:1.6}
+
+/* Cartes d'étape */
+.card{
+  background:var(--s-bg);border:1px solid var(--s-line);border-radius:12px;
+  padding:24px;margin-bottom:16px;box-shadow:none;
+  transition:border-color 200ms var(--s-ez);
+}
+.card:focus-within{border-color:var(--s-line2)}
+.ctitle{font-size:15px;font-weight:600;color:var(--s-tx1);letter-spacing:-.015em;margin-bottom:20px;gap:11px}
+.num{width:24px;height:24px;background:var(--s-tx1);color:#fff;font-size:12px;font-weight:600;border-radius:999px}
+
+/* Champs */
+label{font-size:12.5px;font-weight:500;color:var(--s-tx2);margin-bottom:7px;letter-spacing:0}
+input,select,textarea{
+  border:1px solid var(--s-line2);border-radius:8px;
+  padding:10px 12px;font-size:14px;color:var(--s-tx1);background:var(--s-bg);
+  transition:border-color 150ms var(--s-ez), box-shadow 150ms var(--s-ez);
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--s-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);
+}
+input::placeholder,textarea::placeholder{color:var(--s-tx3)}
+
+/* Choix de secteur — le libellé suffit, les pictogrammes sont masqués */
+.ne{display:none}
+.nn{font-size:13px;line-height:1.3}
+.niches{gap:9px}
+.n{
+  border:1px solid var(--s-line2);border-radius:8px;background:var(--s-bg);
+  color:var(--s-tx2);font-size:13px;font-weight:450;padding:11px 8px;
+  transition:all 150ms var(--s-ez);
+}
+.n:hover{background:var(--s-hover);border-color:var(--s-tx3);color:var(--s-tx1)}
+.n.s{background:var(--s-brand-tint);border-color:var(--s-brand);color:var(--s-brand-tx);font-weight:550}
+
+/* Moyens de paiement */
+.pay-opt{
+  border:1px solid var(--s-line2);border-radius:8px;background:var(--s-bg);
+  color:var(--s-tx2);font-size:13.5px;font-weight:450;
+  transition:all 150ms var(--s-ez);
+}
+.pay-opt:hover{background:var(--s-hover)}
+.pay-opt.s{background:var(--s-brand-tint);border-color:var(--s-brand);color:var(--s-brand-tx);font-weight:550}
+
+/* Dépôt du logo */
+.upload-zone{
+  border:1.5px dashed var(--s-line2);border-radius:10px;background:var(--s-sunken);
+  color:var(--s-tx2);transition:all 180ms var(--s-ez);
+}
+.upload-zone:hover{border-color:var(--s-brand);background:var(--s-brand-tint)}
+.upload-progress{background:var(--s-active);border-radius:999px;height:4px}
+.upload-progress-bar{background:var(--s-brand);border-radius:999px}
+.upload-preview{border:1px solid var(--s-line);border-radius:8px}
+
+/* Catalogue */
+.cat-item{border:1px solid var(--s-line);border-radius:8px;background:var(--s-bg)}
+.cat-item-img,.cat-img-preview{border:1px solid var(--s-line);border-radius:6px}
+.cat-img-btn{border:1px solid var(--s-line2);border-radius:6px;background:var(--s-bg);color:var(--s-tx2);font-size:12.5px;font-weight:500}
+.cat-img-btn:hover{background:var(--s-hover);color:var(--s-tx1)}
+.add-cat{
+  border:1px dashed var(--s-line2);border-radius:8px;background:transparent;
+  color:var(--s-tx2);font-size:13.5px;font-weight:500;padding:11px;
+}
+.add-cat:hover{border-color:var(--s-brand);color:var(--s-brand-tx);background:var(--s-brand-tint)}
+
+/* Bouton d'envoi */
+.sbtn{
+  background:var(--s-tx1);color:#fff;border:none;border-radius:8px;
+  height:48px;font-size:15px;font-weight:550;letter-spacing:-.01em;
+  transition:background-color 150ms var(--s-ez),opacity 150ms var(--s-ez);
+}
+.sbtn:hover{background:#000}
+.sbtn:disabled{opacity:.5}
+
+/* Écran de résultat : fond clair au lieu de sombre */
+.res{background:var(--s-bg);border:1px solid var(--s-line);border-radius:12px;color:var(--s-tx1)}
+.rt{font-size:20px;font-weight:600;color:var(--s-tx1);letter-spacing:-.02em}
+.rl{font-size:11.5px;color:var(--s-tx3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.rv{background:var(--s-sunken);border:1px solid var(--s-line);border-radius:8px;color:var(--s-tx1);font-size:13px}
+.cp{background:var(--s-bg);color:var(--s-tx2);border:1px solid var(--s-line2);border-radius:6px;font-size:12px;font-weight:500}
+.cp:hover{background:var(--s-hover);color:var(--s-tx1)}
+.rb{border-radius:8px;font-size:13.5px;font-weight:500;padding:12px}
+.rb-g{background:var(--s-tx1);color:#fff;border:1px solid var(--s-tx1)}
+.rb-g:hover{background:#000}
+.rb-o{background:var(--s-bg);color:var(--s-tx1);border:1px solid var(--s-line2)}
+.rb-o:hover{background:var(--s-hover)}
 </style>
-</head>
+<link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="hd"><div class="logo">Sama<span>Bot</span></div></div>
 <div class="wrap">
-  <h1>Créez votre bot IA 🤖</h1>
+  <h1>Créez votre assistant</h1>
   <p class="sub">Configurez votre assistant en 3 minutes. Sans technique.</p>
 
   <!-- 1 -->
@@ -6653,7 +7004,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="upload-zone" id="logo-zone">
         <input type="file" id="logo-file" accept="image/*" onchange="uploadLogo(this)"/>
         <div id="logo-placeholder">
-          <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+          <div style="margin-bottom:8px;color:#8A9099"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
           <div style="font-size:13px;font-weight:600;color:#3a5040">Cliquez pour uploader votre logo</div>
           <div style="font-size:11px;color:#9ab0a0;margin-top:3px">JPG, PNG, WebP — max 5MB</div>
         </div>
@@ -6737,7 +7088,7 @@ textarea{min-height:80px;resize:vertical}
           <div class="cat-item-img">
             <img class="cat-img-preview" alt=""/>
             <div class="cat-img-btn">
-              📷 Photo
+              Photo
               <input type="file" accept="image/*" onchange="uploadCatImg(this)"/>
             </div>
             <span style="font-size:11px;color:#9ab0a0;margin-left:4px">Optionnel</span>
@@ -6754,11 +7105,11 @@ textarea{min-height:80px;resize:vertical}
     <div class="f">
       <label>Moyens acceptés</label>
       <div class="pay-opts">
-        <div class="pay-opt s" data-val="Wave" onclick="tPay(this)">💙 Wave</div>
-        <div class="pay-opt s" data-val="Orange Money" onclick="tPay(this)">🟠 Orange Money</div>
-        <div class="pay-opt s" data-val="Espèces" onclick="tPay(this)">💵 Espèces</div>
-        <div class="pay-opt" data-val="Free Money" onclick="tPay(this)">🟢 Free Money</div>
-        <div class="pay-opt" data-val="Carte bancaire" onclick="tPay(this)">💳 Carte</div>
+        <div class="pay-opt s" data-val="Wave" onclick="tPay(this)">Wave</div>
+        <div class="pay-opt s" data-val="Orange Money" onclick="tPay(this)">Orange Money</div>
+        <div class="pay-opt s" data-val="Espèces" onclick="tPay(this)">Espèces</div>
+        <div class="pay-opt" data-val="Free Money" onclick="tPay(this)">Free Money</div>
+        <div class="pay-opt" data-val="Carte bancaire" onclick="tPay(this)">Carte bancaire</div>
       </div>
     </div>
     <div class="row2">
@@ -6774,7 +7125,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="f"><label>WhatsApp notifs commandes</label><input id="notif" placeholder="+221 77 xxx xxxx"/></div>
       <div class="f"><label>Email notifications</label><input id="notif_email" type="email" placeholder="patron@monbusiness.com"/></div>
     </div>
-    <div class="f"><label style="color:#5a7060;font-size:11px">💡 Vous recevrez un email à chaque commande et RDV</label></div>
+    <div class="f"><label style="color:#8A9099;font-size:12px">Vous recevrez un email à chaque commande et chaque rendez-vous.</label></div>
     <div class="f">
       <label>Couleur du bot</label>
       <div class="cols">
@@ -6790,16 +7141,16 @@ textarea{min-height:80px;resize:vertical}
     </div>
   </div>
 
-  <button class="sbtn" id="sbtn" onclick="create()">🚀 Créer mon bot SamaBot</button>
+  <button class="sbtn" id="sbtn" onclick="create()">Créer mon assistant</button>
 
   <div class="res" id="res">
-    <div class="rt">🎉 Votre bot est prêt !</div>
-    <div class="ri"><div class="rl">🔗 Lien chat</div><div class="rv" id="r-chat"></div><button class="cp" onclick="cp('r-chat')">📋 Copier</button></div>
-    <div class="ri"><div class="rl">📊 Dashboard</div><div class="rv" id="r-dash"></div><button class="cp" onclick="cp('r-dash')">📋 Copier</button></div>
-    <div class="ri"><div class="rl">📦 Widget site</div><div class="rv" id="r-widget"></div><button class="cp" onclick="cp('r-widget')">📋 Copier</button></div>
+    <div class="rt">Votre assistant est prêt</div>
+    <div class="ri"><div class="rl">Lien de discussion</div><div class="rv" id="r-chat"></div><button class="cp" onclick="cp('r-chat')">Copier</button></div>
+    <div class="ri"><div class="rl">Tableau de bord</div><div class="rv" id="r-dash"></div><button class="cp" onclick="cp('r-dash')">Copier</button></div>
+    <div class="ri"><div class="rl">Code à coller sur votre site</div><div class="rv" id="r-widget"></div><button class="cp" onclick="cp('r-widget')">Copier</button></div>
     <div class="rbtns">
-      <a class="rb rb-g" id="r-link" href="#" target="_blank">💬 Tester →</a>
-      <a class="rb rb-o" id="r-dlink" href="#" target="_blank">📊 Dashboard →</a>
+      <a class="rb rb-g" id="r-link" href="#" target="_blank">Tester l'assistant</a>
+      <a class="rb rb-o" id="r-dlink" href="#" target="_blank">Ouvrir le tableau de bord</a>
     </div>
   </div>
 </div>
@@ -6836,7 +7187,7 @@ async function uploadCatImg(input){
       if(d.url){
         preview.src=d.url;preview.classList.add('show');
         input.dataset.url=d.url;
-        btn.innerHTML='✅ Photo<input type="file" accept="image/*" onchange="uploadCatImg(this)"/>';
+        btn.innerHTML='Photo ajoutée<input type="file" accept="image/*" onchange="uploadCatImg(this)"/>';
       }
     }catch(e){alert('Erreur upload image');}
     btn.style.opacity='1';
@@ -6887,12 +7238,12 @@ async function uploadLogo(input){
 
 function cp(id){
   var t=document.getElementById(id).textContent;
-  navigator.clipboard.writeText(t).then(()=>alert('✅ Copié!')).catch(()=>{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copié!');});
+  navigator.clipboard.writeText(t).then(()=>alert('Copié')).catch(()=>{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('✅ Copié!');});
 }
 
 async function create(){
   var nom=document.getElementById('nom').value.trim();
-  if(!nom){alert('⚠️ Entrez le nom de votre business');return;}
+  if(!nom){alert('Entrez le nom de votre établissement');return;}
   var btn=document.getElementById('sbtn');btn.textContent='⏳ Création...';btn.disabled=true;
   try{
     var r=await fetch('/bot/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
@@ -6926,9 +7277,9 @@ async function create(){
       document.getElementById('r-dlink').href=d.dashUrl;
       document.getElementById('res').classList.add('show');
       document.getElementById('res').scrollIntoView({behavior:'smooth'});
-    }else alert('❌ '+(d.error||'Erreur'));
-  }catch(e){alert('❌ Erreur réseau');}
-  btn.textContent='🚀 Créer mon bot SamaBot';btn.disabled=false;
+    }else alert(d.error||'Une erreur est survenue');
+  }catch(e){alert('Erreur réseau. Vérifiez votre connexion.');}
+  btn.textContent='Créer mon assistant';btn.disabled=false;
 }
 </script>
 </body>
@@ -7168,6 +7519,9 @@ app.get('/chat/:botId', async (req, res) => {
 <meta property="og:description" content="Chattez avec ${bot.nom} en wolof et français"/>
 ${bot.logo_url?`<meta property="og:image" content="${bot.logo_url}"/>`:''}
 <title>${bot.nom}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:flex;flex-direction:column;height:100dvh;max-width:500px;margin:0 auto}
@@ -7269,14 +7623,207 @@ body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:f
 .typing span{width:7px;height:7px;border-radius:50%;background:#ccc;animation:dot 1.2s infinite}
 .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
 @keyframes dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — neutres froids, accent = couleur de marque
+   Placée en fin de feuille : ces règles priment sur celles du dessus.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --k-bg:#FFFFFF; --k-sunken:#F8F9FA; --k-hover:#F1F3F4; --k-active:#E8EAED;
+  --k-tx1:#202124; --k-tx2:#5F6368; --k-tx3:#80868B;
+  --k-line:#E8EAED; --k-line2:#DADCE0;
+  --k-brand:${bot.couleur};
+  --k-r:8px; --k-r-lg:12px; --k-r-full:999px;
+  --k-ez:cubic-bezier(.2,0,0,1);
+}
+*{-webkit-tap-highlight-color:transparent}
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--k-bg); color:var(--k-tx1);
+  font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  max-width:560px;
+}
+
+/* ── En-tête : blanc, pas de bandeau coloré ── */
+.hd{
+  background:var(--k-bg); border-bottom:1px solid var(--k-line);
+  box-shadow:none; padding:12px 16px; gap:12px;
+  padding-top:calc(12px + env(safe-area-inset-top,0px));
+}
+.hd-logo,.hd-ava{width:38px;height:38px;border-radius:var(--k-r);border:1px solid var(--k-line);background:var(--k-sunken)}
+.hd-ava{color:var(--k-tx2);font-size:15px;font-weight:600}
+.hd-nm{font-size:15px;font-weight:600;color:var(--k-tx1);letter-spacing:-.01em}
+.hd-st{font-size:12px;color:var(--k-tx3);margin-top:1px;gap:6px}
+.hd-dot{width:6px;height:6px;background:#1E8E3E}
+.hd-dash{
+  background:transparent;border:1px solid var(--k-line2);color:var(--k-tx2);
+  border-radius:var(--k-r);padding:6px 11px;font-size:12.5px;font-weight:500;
+  transition:background 150ms var(--k-ez);
+}
+.hd-dash:hover{background:var(--k-hover)}
+
+/* ── Fil de discussion ── */
+.msgs{background:var(--k-sunken);padding:16px 14px;gap:8px}
+.bub{
+  font-size:14.5px;line-height:1.55;max-width:80%;
+  border-radius:var(--k-r-lg);padding:9px 13px;
+}
+.bub.b{
+  background:var(--k-bg);color:var(--k-tx1);
+  border:1px solid var(--k-line);box-shadow:none;
+  border-radius:var(--k-r-lg) var(--k-r-lg) var(--k-r-lg) 4px;
+}
+.bub.u{
+  background:var(--k-brand);color:#fff;
+  border-radius:var(--k-r-lg) var(--k-r-lg) 4px var(--k-r-lg);
+}
+.av{width:28px;height:28px;border-radius:var(--k-r);background:var(--k-active);color:var(--k-tx2);font-size:12px;font-weight:600}
+.typing{
+  background:var(--k-bg);border:1px solid var(--k-line);
+  border-radius:var(--k-r-lg) var(--k-r-lg) var(--k-r-lg) 4px;
+}
+.typing span{background:var(--k-tx3);width:6px;height:6px}
+
+/* ── Actions : neutres et uniformes, plus d'arc-en-ciel ── */
+.actions{padding:2px 14px 8px 46px;gap:7px}
+.act,
+.act-maps,.act-phone,.act-whatsapp,.act-wave,.act-om,.act-cash,
+.act-share,.act-hours,.act-rdv,.act-geoloc,.act-address{
+  background:var(--k-bg);
+  color:var(--k-tx2);
+  border:1px solid var(--k-line2);
+  border-radius:var(--k-r-full);
+  padding:7px 13px;
+  font-size:13px;font-weight:500;
+  transition:background 150ms var(--k-ez),border-color 150ms var(--k-ez);
+}
+.act:hover,.act-maps:hover,.act-phone:hover,.act-whatsapp:hover,.act-wave:hover,
+.act-om:hover,.act-cash:hover,.act-share:hover,.act-hours:hover,
+.act-rdv:hover,.act-geoloc:hover,.act-address:hover{
+  background:var(--k-hover);border-color:var(--k-tx3);color:var(--k-tx1);
+}
+.act-rdv,.act-geoloc{border-color:var(--k-brand);color:var(--k-brand);font-weight:550}
+
+/* ── Réponses rapides ── */
+.qr{gap:7px;padding:8px 14px}
+.qb{
+  background:var(--k-bg);border:1px solid var(--k-line2);color:var(--k-tx2);
+  border-radius:var(--k-r-full);padding:8px 14px;font-size:13px;font-weight:500;
+  transition:background 150ms var(--k-ez),border-color 150ms var(--k-ez);
+}
+.qb:hover{background:var(--k-hover);border-color:var(--k-tx3);color:var(--k-tx1)}
+
+/* ── Feuilles modales ── */
+.rdv-modal,.geo-modal{background:rgba(32,33,36,.42);backdrop-filter:blur(2px)}
+.rdv-sheet,.geo-sheet{
+  border-radius:16px 16px 0 0;
+  box-shadow:0 -2px 24px rgba(60,64,67,.16);
+  padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));
+  max-width:560px;
+}
+.rdv-title,.geo-title{font-size:16px;font-weight:600;color:var(--k-tx1);letter-spacing:-.01em;margin-bottom:5px}
+.rdv-sub,.geo-sub{font-size:13px;color:var(--k-tx2);margin-bottom:18px;line-height:1.55}
+
+.rdv-day{
+  border:1px solid var(--k-line2);border-radius:var(--k-r);background:var(--k-bg);
+  min-width:64px;padding:9px 6px;transition:all 150ms var(--k-ez);
+}
+.rdv-day:hover{background:var(--k-hover)}
+.rdv-day.sel{border-color:var(--k-brand);background:var(--k-brand)}
+.rdv-day-lbl{font-size:10.5px;font-weight:500;color:var(--k-tx3);text-transform:uppercase;letter-spacing:.04em}
+.rdv-day-num{font-size:17px;font-weight:600;color:var(--k-tx1)}
+.rdv-day-free{font-size:10.5px;color:#1E8E3E;font-weight:550}
+.rdv-day.sel .rdv-day-lbl,.rdv-day.sel .rdv-day-free{color:rgba(255,255,255,.85)}
+.rdv-day.sel .rdv-day-num{color:#fff}
+
+.rdv-slot{
+  border:1px solid var(--k-line2);border-radius:var(--k-r);background:var(--k-bg);
+  font-size:13.5px;font-weight:500;color:var(--k-tx1);padding:11px 8px;
+  transition:all 150ms var(--k-ez);
+}
+.rdv-slot:hover{background:var(--k-hover);border-color:var(--k-tx3);color:var(--k-tx1)}
+.rdv-slot.sel{background:var(--k-brand);border-color:var(--k-brand);color:#fff}
+.rdv-slot.pris{background:var(--k-sunken);border-color:var(--k-line);color:var(--k-tx3)}
+
+.rdv-input,.address-input{
+  border:1px solid var(--k-line2);border-radius:var(--k-r);
+  padding:10px 12px;font-size:14px;color:var(--k-tx1);background:var(--k-bg);
+  transition:border-color 150ms var(--k-ez),box-shadow 150ms var(--k-ez);
+}
+.rdv-input:focus,.address-input:focus{
+  border-color:var(--k-brand);box-shadow:0 0 0 3px ${bot.couleur}22;
+}
+.rdv-confirm-btn,.geo-btn-p,.address-send{
+  background:var(--k-brand);color:#fff;border:none;
+  border-radius:var(--k-r);height:44px;font-size:14.5px;font-weight:600;
+  transition:opacity 150ms var(--k-ez);
+}
+.rdv-confirm-btn:hover,.geo-btn-p:hover,.address-send:hover{opacity:.9}
+.geo-btn,.geo-btn-s{
+  background:var(--k-bg);color:var(--k-tx1);border:1px solid var(--k-line2);
+  border-radius:var(--k-r);height:44px;font-size:14px;font-weight:500;
+}
+.geo-btn:hover,.geo-btn-s:hover{background:var(--k-hover)}
+.rdv-cancel,.geo-cancel{color:var(--k-tx3);font-size:13px;font-weight:500}
+.rdv-cancel:hover,.geo-cancel:hover{color:var(--k-tx1)}
+.geo-result{background:var(--k-sunken);border:1px solid var(--k-line);border-radius:var(--k-r)}
+.geo-addr{color:var(--k-tx1);font-weight:500}
+.geo-coords{color:var(--k-tx3);font-size:11.5px}
+
+/* ── Catalogue ── */
+.cat-card{
+  border:1px solid var(--k-line);border-radius:var(--k-r-lg);background:var(--k-bg);
+  box-shadow:none;overflow:hidden;transition:border-color 150ms var(--k-ez);
+}
+.cat-card:hover{border-color:var(--k-line2)}
+.cat-nom{font-size:14px;font-weight:600;color:var(--k-tx1);letter-spacing:-.01em}
+.cat-prix{font-size:14px;font-weight:600;color:var(--k-tx1)}
+.cat-desc-small{font-size:12.5px;color:var(--k-tx2);line-height:1.5}
+.cat-img-placeholder{background:var(--k-sunken);color:var(--k-tx3)}
+.cat-add{
+  background:var(--k-brand);color:#fff;border:none;border-radius:var(--k-r);
+  font-size:13px;font-weight:550;padding:8px 14px;
+}
+
+/* ── Barre de saisie ── */
+.ir{
+  background:var(--k-bg);border-top:1px solid var(--k-line);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));gap:8px;
+}
+.inp{
+  background:var(--k-sunken);border:1px solid transparent;border-radius:var(--k-r-full);
+  padding:10px 15px;font-size:14.5px;color:var(--k-tx1);
+  transition:background 150ms var(--k-ez),border-color 150ms var(--k-ez);
+}
+.inp:focus{background:var(--k-bg);border-color:var(--k-line2)}
+.inp::placeholder{color:var(--k-tx3)}
+.mic-btn{
+  width:38px;height:38px;background:var(--k-sunken);border:1px solid var(--k-line);
+  color:var(--k-tx2);font-size:15px;
+}
+.mic-btn:hover{background:var(--k-hover)}
+.mic-btn.recording{background:#FCE8E6;border-color:#D93025;color:#D93025}
+.snd{width:38px;height:38px;background:var(--k-brand);color:#fff;font-size:14px}
+.pw{background:var(--k-bg);color:var(--k-tx3);font-size:11px;padding:6px;border-top:1px solid var(--k-line)}
+.pw a{color:var(--k-tx2);font-weight:500}
+.pw a:hover{color:var(--k-tx1)}
+
+.star-btn{color:var(--k-tx3);transition:color 150ms var(--k-ez)}
+.star-btn:hover,.rating-stars .star-btn.sel{color:var(--k-brand)}
+.transcription{color:var(--k-tx3);font-size:12px;font-style:normal}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
 </style>
-</head>
+<link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="hd">
   ${bot.logo_url?`<img class="hd-logo" src="${bot.logo_url}" alt="${bot.nom}"/>`:`<div class="hd-ava">${bot.emoji}</div>`}
   <div style="flex:1">
     <div class="hd-nm">${bot.nom}</div>
-    <div class="hd-st"><span class="hd-dot"></span>En ligne — wolof & français 🎤</div>
+    <div class="hd-st"><span class="hd-dot"></span>En ligne — wolof et français</div>
   </div>
   <button class="hd-restart" id="hd-restart" title="Recommencer la conversation" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">↻</button>
 </div>
@@ -7284,7 +7831,7 @@ body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:f
 <div class="msgs" id="msgs">
   <div class="msg">
     <div class="av">${bot.logo_url?`<img src="${bot.logo_url}" alt=""/>`:`${bot.emoji}`}</div>
-    <div class="bub b">Asalaa maalekum! 👋 Bienvenue chez <strong>${bot.nom}</strong>.<br><br>Écrivez ou utilisez le 🎤 pour parler en wolof ou français!</div>
+    <div class="bub b">Asalaa maalekum. Bienvenue chez ${bot.nom}.<br><br>Écrivez-nous, ou utilisez le micro pour parler en wolof ou en français.</div>
   </div>
 </div>
 
@@ -7299,16 +7846,16 @@ body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:f
 <div class="transcription" id="transcription"></div>
 
 <div class="ir">
-  <input class="inp" id="inp" placeholder="Écrivez ou utilisez le micro 🎤..." autocomplete="off"/>
-  <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Message vocal en wolof/français">🎤</button>
-  <button class="snd" onclick="send()">➤</button>
+  <input class="inp" id="inp" placeholder="Écrivez votre message" autocomplete="off"/>
+  <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Message vocal" aria-label="Message vocal"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></button>
+  <button class="snd" onclick="send()" aria-label="Envoyer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
 </div>
 <div class="pw">Propulsé par <a href="${base}" target="_blank">SamaBot IA</a></div>
 
 <!-- MODAL RDV -->
 <div class="rdv-modal" id="rdv-modal" style="display:none">
   <div class="rdv-sheet">
-    <div class="rdv-title">📅 Prendre rendez-vous</div>
+    <div class="rdv-title">Prendre rendez-vous</div>
     <div class="rdv-sub">Choisissez une date et un créneau</div>
     <div class="rdv-days" id="rdv-days"></div>
     <div class="rdv-slots" id="rdv-slots"><div style="text-align:center;color:#9ab0a0;font-size:13px;grid-column:span 3">Sélectionnez une date</div></div>
@@ -7318,7 +7865,7 @@ body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:f
       <input class="rdv-input" id="rdv-email" placeholder="Votre email (pour confirmation)" type="email"/>
       <input class="rdv-input" id="rdv-service" placeholder="Service souhaité"/>
     </div>
-    <button class="rdv-confirm-btn" id="rdv-confirm-btn" onclick="confirmerRdv()" style="display:none">✅ Confirmer le rendez-vous</button>
+    <button class="rdv-confirm-btn" id="rdv-confirm-btn" onclick="confirmerRdv()" style="display:none">Confirmer le rendez-vous</button>
     <button class="rdv-cancel" onclick="fermerRdv()">Annuler</button>
   </div>
 </div>
@@ -7326,14 +7873,14 @@ body{font-family:-apple-system,'DM Sans',sans-serif;background:#f0f4f1;display:f
 <!-- MODAL GÉOLOCALISATION -->
 <div class="geo-modal" id="geo-modal" style="display:none">
   <div class="geo-sheet">
-    <div class="geo-title">📍 Partager votre position</div>
+    <div class="geo-title">Partager votre position</div>
     <div class="geo-sub">Votre adresse de livraison sera détectée automatiquement</div>
     <div id="geo-content">
       <button class="geo-btn geo-btn-p" onclick="requestGeo()">
-        📍 Utiliser ma position GPS
+        Utiliser ma position GPS
       </button>
       <button class="geo-btn geo-btn-s" onclick="showManualInput()">
-        ✏️ Entrer mon adresse manuellement
+        Entrer mon adresse manuellement
       </button>
       <div id="manual-input" style="display:none">
         <div class="address-input-wrap">
@@ -7366,6 +7913,8 @@ var BOT_LOGO=logoSrc;
 var BOT_EMOJI=botEmoji;
 window.__INIT_QR = ${JSON.stringify(qr)};
 var isRec=false,mediaRec=null,audioChunks=[];
+var ICON_MIC='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>';
+var ICON_STOP='<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
 
 document.getElementById('inp').onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
 
@@ -7380,7 +7929,7 @@ function addMsg(t,isUser,isVoice){
   var m=document.getElementById('msgs');
   var d=document.createElement('div');d.className='msg'+(isUser?' u':'');
   var b=document.createElement('div');b.className='bub '+(isUser?'u':'b');
-  if(isUser)b.innerHTML=(isVoice?'🎤 ':'')+t;
+  if(isUser)b.innerHTML=(isVoice?'Vocal · ':'')+t;
   else b.innerHTML=t.replace(/\\n/g,'<br>').replace(/\\*(.*?)\\*/g,'<strong>$1</strong>');
   if(!isUser)d.appendChild(makeAv());
   d.appendChild(b);m.appendChild(d);m.scrollTop=m.scrollHeight;
@@ -7393,7 +7942,7 @@ function renderActions(actions){
     if(a.type==='rdv'){
       var b=document.createElement('button');
       b.className='act act-rdv';
-      b.textContent='📅 Voir les créneaux';
+      b.textContent='Voir les créneaux';
       b.onclick=ouvrirRdv;
       el.appendChild(b);
       return;
@@ -7401,7 +7950,7 @@ function renderActions(actions){
     if(a.type==='geoloc'){
       var b=document.createElement('button');
       b.className='act act-geoloc';
-      b.innerHTML='📍 Partager ma position GPS';
+      b.innerHTML='Partager ma position GPS';
       b.onclick=openGeoModal;
       el.appendChild(b);
       return;
@@ -7409,14 +7958,14 @@ function renderActions(actions){
     if(a.type==='address_manual'){
       var b=document.createElement('button');
       b.className='act act-address';
-      b.innerHTML='✏️ Entrer mon adresse';
+      b.innerHTML='Entrer mon adresse';
       b.onclick=function(){openGeoModal();setTimeout(showManualInput,300);};
       el.appendChild(b);
       return;
     }
     if(a.type==='rating'){showRating();return;}
-    if(a.type==='share'){var b=document.createElement('button');b.className='act act-share';b.textContent=a.label;b.onclick=function(){if(navigator.share)navigator.share({title:"${bot.nom}",url:window.location.href});else{navigator.clipboard.writeText(window.location.href);alert('✅ Lien copié!');}};el.appendChild(b);return;}
-    if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){addMsg('✅ Paiement à la livraison noté! Votre commande est confirmée.',false);el.innerHTML='';};el.appendChild(b);return;}
+    if(a.type==='share'){var b=document.createElement('button');b.className='act act-share';b.textContent=a.label;b.onclick=function(){if(navigator.share)navigator.share({title:"${bot.nom}",url:window.location.href});else{navigator.clipboard.writeText(window.location.href);alert('Lien copié');}};el.appendChild(b);return;}
+    if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){addMsg('Paiement à la livraison noté. Votre commande est confirmée.',false);el.innerHTML='';};el.appendChild(b);return;}
     if(!a.url&&a.type==='hours'){var s=document.createElement('span');s.className='act act-hours';s.textContent=a.label;el.appendChild(s);return;}
     if(a.url){var l=document.createElement('a');l.className='act act-'+a.type;l.textContent=a.label;l.href=a.url;l.target='_blank';l.rel='noopener';el.appendChild(l);}
   });
@@ -7475,10 +8024,10 @@ async function confirmerRdv(){
       fermerRdv();
       document.getElementById('actions').innerHTML='';
       const dl=new Date(rdvDateSel+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-      addMsg('✅ RDV confirmé!\\n\\n📅 '+dl+'\\n🕐 '+rdvHeureSel+'\\n👤 '+nom+'\\n\\nJërëjëf! Nous vous attendons.',false);
+      addMsg('Rendez-vous confirmé.\\n\\n'+dl+' à '+rdvHeureSel+'\\nAu nom de '+nom+'\\n\\nJërëjëf, nous vous attendons.',false);
     }else{alert('Erreur: '+(data.error||'Réessayez'));}
   }catch(e){alert('Erreur réseau');}
-  btn.textContent='✅ Confirmer le rendez-vous';btn.disabled=false;
+  btn.textContent='Confirmer le rendez-vous';btn.disabled=false;
 }
 
 document.getElementById('rdv-modal').onclick=function(e){if(e.target===this)fermerRdv();};
@@ -7489,8 +8038,8 @@ document.getElementById('rdv-modal').onclick=function(e){if(e.target===this)ferm
 function openGeoModal(){
   document.getElementById('geo-modal').style.display='flex';
   document.getElementById('geo-content').innerHTML=\`
-    <button class="geo-btn geo-btn-p" onclick="requestGeo()">📍 Utiliser ma position GPS</button>
-    <button class="geo-btn geo-btn-s" onclick="showManualInput()">✏️ Entrer mon adresse manuellement</button>
+    <button class="geo-btn geo-btn-p" onclick="requestGeo()">Utiliser ma position GPS</button>
+    <button class="geo-btn geo-btn-s" onclick="showManualInput()">Entrer mon adresse manuellement</button>
     <div id="manual-input" style="display:none">
       <div class="address-input-wrap">
         <input class="address-input" id="manual-addr" placeholder="Ex: Almadies Rue 10, Dakar" autocomplete="street-address"/>
@@ -7514,7 +8063,7 @@ function sendManualAddress(){
   if(!addr){alert('Entrez votre adresse');return;}
   closeGeoModal();
   // Envoie l'adresse au bot
-  addMsg('📍 Mon adresse: '+addr, true);
+  addMsg('Mon adresse : '+addr, true);
   showTyping();
   fetch('/chat',{
     method:'POST',
@@ -7538,7 +8087,7 @@ function requestGeo(){
   content.innerHTML='<div class="geo-loading">⏳ Détection de votre position en cours...</div>';
 
   if(!navigator.geolocation){
-    content.innerHTML='<div class="geo-loading">❌ GPS non disponible sur votre appareil.</div>';
+    content.innerHTML='<div class="geo-loading">GPS non disponible sur votre appareil.</div>';
     setTimeout(()=>{closeGeoModal();showManualInput();},2000);
     return;
   }
@@ -7549,7 +8098,7 @@ function requestGeo(){
       var lng=pos.coords.longitude;
       var acc=Math.round(pos.coords.accuracy);
 
-      content.innerHTML='<div class="geo-loading">🗺️ Identification de votre adresse...</div>';
+      content.innerHTML='<div class="geo-loading">Identification de votre adresse…</div>';
 
       try{
         // Reverse geocoding via notre API
@@ -7564,14 +8113,14 @@ function requestGeo(){
         // Affiche le résultat
         content.innerHTML=\`
           <div class="geo-result">
-            <div class="geo-addr">📍 \${addr}</div>
+            <div class="geo-addr">\${addr}</div>
             <div class="geo-coords">Précision: ~\${acc}m • \${lat.toFixed(5)}, \${lng.toFixed(5)}</div>
           </div>
           <button class="geo-btn geo-btn-p" onclick="confirmGeoAddress('\${addr.replace(/'/g,"\\\\'")}', \${lat}, \${lng}, '\${data.mapsUrlLabel}')">
-            ✅ Confirmer cette adresse
+            Confirmer cette adresse
           </button>
           <button class="geo-btn geo-btn-s" onclick="showManualInput()">
-            ✏️ Corriger l'adresse
+            Corriger l'adresse
           </button>
           <div id="manual-input" style="display:none">
             <div class="address-input-wrap">
@@ -7584,13 +8133,13 @@ function requestGeo(){
         // Fallback si reverse geocoding échoue
         content.innerHTML=\`
           <div class="geo-result">
-            <div class="geo-addr">📍 Position GPS détectée</div>
+            <div class="geo-addr">Position GPS détectée</div>
             <div class="geo-coords">Lat: \${lat.toFixed(5)}, Lng: \${lng.toFixed(5)}</div>
           </div>
           <button class="geo-btn geo-btn-p" onclick="confirmGeoAddress('Position GPS: \${lat.toFixed(5)}, \${lng.toFixed(5)}', \${lat}, \${lng}, 'https://www.google.com/maps?q=\${lat},\${lng}')">
-            ✅ Confirmer ma position
+            Confirmer ma position
           </button>
-          <button class="geo-btn geo-btn-s" onclick="showManualInput()">✏️ Entrer l'adresse</button>
+          <button class="geo-btn geo-btn-s" onclick="showManualInput()">Entrer l'adresse</button>
           <div id="manual-input" style="display:none">
             <div class="address-input-wrap">
               <input class="address-input" id="manual-addr" placeholder="Entrez votre adresse"/>
@@ -7604,14 +8153,14 @@ function requestGeo(){
       // Permission refusée ou erreur GPS
       var msg='';
       switch(err.code){
-        case 1: msg='🚫 Accès au GPS refusé. Activez la géolocalisation dans les paramètres.'; break;
-        case 2: msg='📡 Position indisponible. Vérifiez votre connexion GPS.'; break;
+        case 1: msg='Accès au GPS refusé. Activez la géolocalisation dans les paramètres.'; break;
+        case 2: msg='Position indisponible. Vérifiez votre connexion GPS.'; break;
         case 3: msg='⏱️ Délai dépassé. Réessayez ou entrez votre adresse.'; break;
-        default: msg='❌ Erreur GPS. Entrez votre adresse manuellement.';
+        default: msg='Erreur GPS. Entrez votre adresse manuellement.';
       }
       content.innerHTML=\`
         <div class="geo-loading">\${msg}</div>
-        <button class="geo-btn geo-btn-s" onclick="showManualInput()" style="margin-top:12px">✏️ Entrer mon adresse</button>
+        <button class="geo-btn geo-btn-s" onclick="showManualInput()" style="margin-top:12px">Entrer mon adresse</button>
         <div id="manual-input" style="display:none">
           <div class="address-input-wrap">
             <input class="address-input" id="manual-addr" placeholder="Ex: Almadies, Dakar"/>
@@ -7630,7 +8179,7 @@ function confirmGeoAddress(addr, lat, lng, mapsUrl){
   document.getElementById('actions').innerHTML='';
 
   // Affiche dans le chat
-  addMsg('📍 Ma position: '+addr, true);
+  addMsg('Ma position : '+addr, true);
   showTyping();
 
   // Envoie au bot avec les coordonnées
@@ -7647,12 +8196,12 @@ function confirmGeoAddress(addr, lat, lng, mapsUrl){
   .then(r=>r.json())
   .then(data=>{
     var ty=document.getElementById('typing');if(ty)ty.remove();
-    addMsg(data.reply||'✅ Adresse confirmée!',false);
+    addMsg(data.reply||'Adresse confirmée.',false);
     // Affiche le lien Maps pour que le client voit sa position
     var actEl=document.getElementById('actions');
     var mapsLink=document.createElement('a');
     mapsLink.className='act act-maps';
-    mapsLink.textContent='🗺️ Voir sur la carte';
+    mapsLink.textContent='Voir sur la carte';
     mapsLink.href='https://www.google.com/maps?q='+lat+','+lng;
     mapsLink.target='_blank';
     actEl.appendChild(mapsLink);
@@ -7661,12 +8210,12 @@ function confirmGeoAddress(addr, lat, lng, mapsUrl){
       data.actions.forEach(function(a){
         if(a.type==='wave'||a.type==='om'||a.type==='cash'){
           if(a.url){var l=document.createElement('a');l.className='act act-'+a.type;l.textContent=a.label;l.href=a.url;l.target='_blank';actEl.appendChild(l);}
-          else if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){addMsg('✅ Paiement à la livraison confirmé!',false);actEl.innerHTML='';};actEl.appendChild(b);}
+          else if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){addMsg('Paiement à la livraison confirmé.',false);actEl.innerHTML='';};actEl.appendChild(b);}
         }
       });
     }
   })
-  .catch(()=>{var ty=document.getElementById('typing');if(ty)ty.remove();addMsg('✅ Position reçue! Commande confirmée.',false);});
+  .catch(()=>{var ty=document.getElementById('typing');if(ty)ty.remove();addMsg('Position reçue. Commande confirmée.',false);});
 }
 
 // Ferme modal si click dehors
@@ -7701,11 +8250,11 @@ function showRating(){
   [1,2,3,4,5].forEach(function(n){
     var b=document.createElement('button');b.className='star-btn';b.textContent='☆';
     b.onclick=function(){
-      document.querySelectorAll('.star-btn').forEach((s,i)=>s.textContent=i<n?'⭐':'☆');
+      document.querySelectorAll('.star-btn').forEach((s,i)=>s.textContent=i<n?'★':'☆');
       setTimeout(function(){
         fetch('/avis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({botId,sessionId:sid,note:n})}).catch(()=>{});
         el.style.display='none';
-        addMsg('Jerejef! 🙏 Merci pour votre note '+n+'/5!',false);
+        addMsg('Jërëjëf, merci pour votre note de '+n+' sur 5.',false);
       },600);
     };
     el.appendChild(b);
@@ -7743,9 +8292,9 @@ async function startRec(){
     mediaRec.start(100);
     isRec=true;
     document.getElementById('mic-btn').classList.add('recording');
-    document.getElementById('mic-btn').textContent='⏹️';
+    document.getElementById('mic-btn').innerHTML=ICON_STOP;
     var tr=document.getElementById('transcription');
-    tr.style.display='block';tr.textContent='🎤 Parlez maintenant... (cliquez ⏹️ pour arrêter)';
+    tr.style.display='block';tr.textContent='Parlez maintenant. Cliquez à nouveau pour arrêter.';
   }catch(e){
     alert('Microphone non accessible. Vérifiez les permissions du navigateur.');
   }
@@ -7755,8 +8304,8 @@ function stopRec(){
   if(mediaRec&&isRec){
     mediaRec.stop();isRec=false;
     document.getElementById('mic-btn').classList.remove('recording');
-    document.getElementById('mic-btn').textContent='🎤';
-    document.getElementById('transcription').textContent='⏳ Transcription en cours...';
+    document.getElementById('mic-btn').innerHTML=ICON_MIC;
+    document.getElementById('transcription').textContent='Transcription en cours…';
   }
 }
 
@@ -7826,7 +8375,7 @@ function showOrderConfirmedAnimation(){
   var div = document.createElement('div');
   div.id = 'order-confirmed-anim';
   div.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#00c875;color:#fff;padding:30px 40px;border-radius:20px;font-size:16px;font-weight:700;text-align:center;z-index:9999;box-shadow:0 10px 40px rgba(0,200,117,0.4);animation:popIn .4s ease;font-family:inherit';
-  div.innerHTML = '<div style="font-size:60px;margin-bottom:10px;animation:bounce .6s ease">✅</div>Commande confirmée!';
+  div.innerHTML = '<div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>Commande confirmée';
   document.body.appendChild(div);
   // Style anim si pas déjà présent
   if(!document.getElementById('order-anim-css')){
@@ -7854,7 +8403,7 @@ function restartConversation(){
   // Remettre message d'accueil
   var welcome = document.createElement('div');
   welcome.className = 'msg';
-  welcome.innerHTML = '<div class="av">' + (BOT_LOGO ? '<img src="'+BOT_LOGO+'" alt=""/>' : BOT_EMOJI) + '</div><div class="bub b">Asalaa maalekum! 👋 Bienvenue chez <strong>' + BOT_NAME + '</strong>.<br><br>Écrivez ou utilisez le 🎤 pour parler en wolof ou français!</div>';
+  welcome.innerHTML = '<div class="av">' + (BOT_LOGO ? '<img src="'+BOT_LOGO+'" alt=""/>' : BOT_EMOJI) + '</div><div class="bub b">Asalaa maalekum. Bienvenue chez ' + BOT_NAME + '.<br><br>Écrivez-nous, ou utilisez le micro pour parler en wolof ou en français.</div>';
   msgs.appendChild(welcome);
   // Vider zones d'actions
   document.getElementById('actions').innerHTML='';
@@ -7895,7 +8444,7 @@ function renderInitialSuggestions(){
 // ADMIN DASHBOARD — Interface complète
 // ============================================
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'samabot_admin_2025';
-const adminPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot Admin</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#0a0a0a;color:#fff;min-height:100vh}\n.nav{background:#111;border-bottom:1px solid #222;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}.logo span{color:#00c875}\n.badge{background:#00c875;color:#000;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px}\n.wrap{max-width:1200px;margin:0 auto;padding:28px 20px}\n.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}\n.kpi{background:#111;border:1px solid #222;border-radius:12px;padding:20px}\n.kpi-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#00c875;line-height:1}\n.kpi-lbl{font-size:12px;color:#666;margin-top:6px}\n.tabs{display:flex;gap:0;border-bottom:1px solid #222;margin-bottom:20px}\n.tab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}\n.tab.active{color:#00c875;border-bottom-color:#00c875}\n.tc{display:none}.tc.active{display:block}\n.table{width:100%;border-collapse:collapse}\n.table th{background:#111;border:1px solid #222;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;text-align:left;font-weight:600}\n.table td{border:1px solid #1a1a1a;padding:10px 12px;font-size:13px;color:#ccc;vertical-align:top}\n.table tr:hover td{background:#111}\n.pill{border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;display:inline-block}\n.p-free{background:#222;color:#666}\n.p-starter{background:#1a2e1a;color:#00c875}\n.p-pro{background:#1a1a2e;color:#6366f1}\n.p-business{background:#2e1a1a;color:#f59e0b}\n.search{background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;font-size:13px;color:#fff;font-family:inherit;outline:none;width:240px}\n.search:focus{border-color:#00c875}\n.fb{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}\n.ab{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:4px 10px;font-size:11px;color:#ccc;cursor:pointer;font-family:inherit}\n.ab:hover{border-color:#00c875;color:#00c875}\n.msg{background:#1a1a1a;border-radius:8px;padding:8px 10px;font-size:12px;color:#999;max-width:400px;line-height:1.4}\n</style>\n</head>\n<body>\n<div class=\"nav\">\n  <div><span class=\"logo\">Sama<span>Bot</span></span><span class=\"badge\">ADMIN</span></div>\n  <div style=\"font-size:12px;color:#444\" id=\"ref\">Chargement...</div>\n</div>\n<div class=\"wrap\">\n  <div class=\"kpis\">\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-u\">-</div><div class=\"kpi-lbl\">Clients</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-b\">-</div><div class=\"kpi-lbl\">Bots actifs</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-m\">-</div><div class=\"kpi-lbl\">Msgs aujourd_hui</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-o\">-</div><div class=\"kpi-lbl\">Commandes</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-r\">-</div><div class=\"kpi-lbl\">Revenus</div></div>\n  </div>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"st('clients',this)\">Clients</div>\n    <div class=\"tab\" onclick=\"st('bots',this)\">Bots</div>\n    <div class=\"tab\" onclick=\"st('cmds',this)\">Commandes</div>\n    <div class=\"tab\" onclick=\"st('msgs',this)\">Messages</div>\n  </div>\n  <div id=\"tc-clients\" class=\"tc active\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les clients</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cl',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cl\"><thead><tr><th>Client</th><th>Email</th><th>Plan</th><th>Bots</th><th>Inscrit le</th><th>Actions</th></tr></thead><tbody id=\"b-cl\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-bots\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les bots</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-bo',this.value)\"/></div>\n    <table class=\"table\" id=\"t-bo\"><thead><tr><th>Bot</th><th>Niche</th><th>Owner</th><th>Msgs</th><th>Cmds</th><th>Cree le</th><th>Actions</th></tr></thead><tbody id=\"b-bo\"><tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-cmds\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Toutes les commandes</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cm',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cm\"><thead><tr><th>Ref</th><th>Bot</th><th>Client</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead><tbody id=\"b-cm\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-msgs\" class=\"tc\">\n    <b style=\"color:#fff;display:block;margin-bottom:14px\">Messages recents</b>\n    <div id=\"msgs-list\" style=\"display:flex;flex-direction:column;gap:8px\"></div>\n  </div>\n</div>\n<script>\nvar SEC = 'PLACEHOLDER_SECRET';\nvar D = {};\n\nfunction st(id,el){\n  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});\n  document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});\n  el.classList.add('active');\n  document.getElementById('tc-'+id).classList.add('active');\n}\n\nfunction ft(tid,q){\n  var rows=document.querySelectorAll('#'+tid+' tbody tr');\n  q=q.toLowerCase();\n  rows.forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});\n}\n\nfunction pp(plan){\n  var cls={'free':'p-free','starter':'p-starter','pro':'p-pro','business':'p-business'};\n  return '<span class=\"pill '+(cls[plan]||'p-free')+'\">'+(plan||'free').toUpperCase()+'</span>';\n}\n\nfunction ld(){\n  fetch('/admin/stats?secret='+SEC)\n    .then(function(r){\n      if(!r.ok){document.getElementById('ref').textContent='Erreur '+r.status;return null;}\n      return r.json();\n    })\n    .then(function(d){\n      if(!d||!d.stats)return;\n      D=d;\n      document.getElementById('k-u').textContent=d.stats.total_users;\n      document.getElementById('k-b').textContent=d.stats.total_bots;\n      document.getElementById('k-m').textContent=d.stats.messages_today;\n      document.getElementById('k-o').textContent=(d.commandes||[]).length;\n      document.getElementById('k-r').textContent=((d.stats.total_revenue||0)/1000).toFixed(0)+'K F';\n      document.getElementById('ref').textContent='Mis a jour: '+new Date().toLocaleTimeString('fr-FR');\n\n      // CLIENTS\n      var ch='';\n      (d.users||[]).forEach(function(u){\n        var ub=(d.bots||[]).filter(function(b){return b.user_id===u.id;});\n        ch+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+(u.nom||'-')+'</strong></td>'\n          +'<td>'+u.email+'</td>'\n          +'<td>'+pp(u.plan)+'</td>'\n          +'<td>'+ub.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(u.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td><button class=\"ab\" onclick=\"cp(this)\" data-uid=\"'+u.id+'\">Plan</button></td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cl').innerHTML=ch||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucun client</td></tr>';\n\n      // BOTS\n      var bh='';\n      (d.bots||[]).forEach(function(b){\n        var ow=(d.users||[]).find(function(u){return u.id===b.user_id;});\n        var bc=(d.commandes||[]).filter(function(c){return c.bot_id===b.id;});\n        bh+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+b.nom+'</strong></td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+b.niche+'</span></td>'\n          +'<td style=\"color:#888\">'+(ow?ow.email:'-')+'</td>'\n          +'<td>'+(b.messages_count||0)+'</td>'\n          +'<td>'+bc.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(b.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td>'\n            +'<a href=\"/dashboard/'+b.id+'\" target=\"_blank\" class=\"ab\">Dashboard</a>'\n          +'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-bo').innerHTML=bh||'<tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Aucun bot</td></tr>';\n\n      // COMMANDES\n      var oh='';\n      (d.commandes||[]).forEach(function(c){\n        var bo=(d.bots||[]).find(function(b){return b.id===c.bot_id;});\n        oh+='<tr>'\n          +'<td><strong style=\"color:#fff;font-size:12px\">'+(c.numero||c.id.substring(0,8))+'</strong></td>'\n          +'<td>'+(bo?bo.nom:c.bot_id)+'</td>'\n          +'<td>'+(c.client_nom||'-')+'</td>'\n          +'<td style=\"color:#00c875;font-weight:700\">'+(c.total||0).toLocaleString('fr-FR')+' F</td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+c.statut+'</span></td>'\n          +'<td style=\"color:#444;font-size:11px\">'+new Date(c.created_at).toLocaleString('fr-FR')+'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cm').innerHTML=oh||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucune commande</td></tr>';\n\n      // MESSAGES\n      var mh='';\n      (d.recent_messages||[]).slice(0,20).forEach(function(m){\n        var bo=(d.bots||[]).find(function(b){return b.id===m.bot_id;});\n        mh+='<div style=\"display:flex;gap:10px;align-items:flex-start\">'\n          +'<div style=\"font-size:10px;color:#444;min-width:100px;padding-top:4px\">'+new Date(m.created_at).toLocaleTimeString('fr-FR')+'<br>'+(bo?bo.nom:'?')+'<br><span style=\"color:'+(m.role==='user'?'#6366f1':'#00c875')+'\">'+m.role+'</span></div>'\n          +'<div class=\"msg\">'+m.content.substring(0,200)+'</div>'\n          +'</div>';\n      });\n      document.getElementById('msgs-list').innerHTML=mh||'<div style=\"color:#444\">Aucun message</div>';\n    })\n    .catch(function(e){\n      document.getElementById('ref').textContent='Erreur: '+e.message;\n    });\n}\n\nasync function cp(btn){ var uid = btn.getAttribute('data-uid');\n  var plan=prompt('Nouveau plan (free/starter/pro/business):');\n  if(!plan)return;\n  var r=await fetch('/admin/user/'+uid+'/plan',{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Secret':SEC},body:JSON.stringify({plan:plan})});\n  var d=await r.json();\n  if(d.success){alert('Plan mis a jour!');ld();}\n  else alert('Erreur: '+d.error);\n}\n\nld();\nsetInterval(ld,30000);\n</script>\n</body>\n</html>";
+const adminPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot Admin</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#0a0a0a;color:#fff;min-height:100vh}\n.nav{background:#111;border-bottom:1px solid #222;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}.logo span{color:#00c875}\n.badge{background:#00c875;color:#000;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px}\n.wrap{max-width:1200px;margin:0 auto;padding:28px 20px}\n.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}\n.kpi{background:#111;border:1px solid #222;border-radius:12px;padding:20px}\n.kpi-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#00c875;line-height:1}\n.kpi-lbl{font-size:12px;color:#666;margin-top:6px}\n.tabs{display:flex;gap:0;border-bottom:1px solid #222;margin-bottom:20px}\n.tab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}\n.tab.active{color:#00c875;border-bottom-color:#00c875}\n.tc{display:none}.tc.active{display:block}\n.table{width:100%;border-collapse:collapse}\n.table th{background:#111;border:1px solid #222;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;text-align:left;font-weight:600}\n.table td{border:1px solid #1a1a1a;padding:10px 12px;font-size:13px;color:#ccc;vertical-align:top}\n.table tr:hover td{background:#111}\n.pill{border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;display:inline-block}\n.p-free{background:#222;color:#666}\n.p-starter{background:#1a2e1a;color:#00c875}\n.p-pro{background:#1a1a2e;color:#6366f1}\n.p-business{background:#2e1a1a;color:#f59e0b}\n.search{background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;font-size:13px;color:#fff;font-family:inherit;outline:none;width:240px}\n.search:focus{border-color:#00c875}\n.fb{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}\n.ab{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:4px 10px;font-size:11px;color:#ccc;cursor:pointer;font-family:inherit}\n.ab:hover{border-color:#00c875;color:#00c875}\n.msg{background:#1a1a1a;border-radius:8px;padding:8px 10px;font-size:12px;color:#999;max-width:400px;line-height:1.4}\n</style>\n<link rel='stylesheet' href='/premium.css'></head>\n<body>\n<div class=\"nav\">\n  <div><span class=\"logo\">Sama<span>Bot</span></span><span class=\"badge\">ADMIN</span></div>\n  <div style=\"font-size:12px;color:#444\" id=\"ref\">Chargement...</div>\n</div>\n<div class=\"wrap\">\n  <div class=\"kpis\">\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-u\">-</div><div class=\"kpi-lbl\">Clients</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-b\">-</div><div class=\"kpi-lbl\">Bots actifs</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-m\">-</div><div class=\"kpi-lbl\">Msgs aujourd_hui</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-o\">-</div><div class=\"kpi-lbl\">Commandes</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-r\">-</div><div class=\"kpi-lbl\">Revenus</div></div>\n  </div>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"st('clients',this)\">Clients</div>\n    <div class=\"tab\" onclick=\"st('bots',this)\">Bots</div>\n    <div class=\"tab\" onclick=\"st('cmds',this)\">Commandes</div>\n    <div class=\"tab\" onclick=\"st('msgs',this)\">Messages</div>\n  </div>\n  <div id=\"tc-clients\" class=\"tc active\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les clients</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cl',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cl\"><thead><tr><th>Client</th><th>Email</th><th>Plan</th><th>Bots</th><th>Inscrit le</th><th>Actions</th></tr></thead><tbody id=\"b-cl\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-bots\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les bots</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-bo',this.value)\"/></div>\n    <table class=\"table\" id=\"t-bo\"><thead><tr><th>Bot</th><th>Niche</th><th>Owner</th><th>Msgs</th><th>Cmds</th><th>Cree le</th><th>Actions</th></tr></thead><tbody id=\"b-bo\"><tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-cmds\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Toutes les commandes</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cm',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cm\"><thead><tr><th>Ref</th><th>Bot</th><th>Client</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead><tbody id=\"b-cm\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-msgs\" class=\"tc\">\n    <b style=\"color:#fff;display:block;margin-bottom:14px\">Messages recents</b>\n    <div id=\"msgs-list\" style=\"display:flex;flex-direction:column;gap:8px\"></div>\n  </div>\n</div>\n<script>\nvar SEC = 'PLACEHOLDER_SECRET';\nvar D = {};\n\nfunction st(id,el){\n  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});\n  document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});\n  el.classList.add('active');\n  document.getElementById('tc-'+id).classList.add('active');\n}\n\nfunction ft(tid,q){\n  var rows=document.querySelectorAll('#'+tid+' tbody tr');\n  q=q.toLowerCase();\n  rows.forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});\n}\n\nfunction pp(plan){\n  var cls={'free':'p-free','starter':'p-starter','pro':'p-pro','business':'p-business'};\n  return '<span class=\"pill '+(cls[plan]||'p-free')+'\">'+(plan||'free').toUpperCase()+'</span>';\n}\n\nfunction ld(){\n  fetch('/admin/stats?secret='+SEC)\n    .then(function(r){\n      if(!r.ok){document.getElementById('ref').textContent='Erreur '+r.status;return null;}\n      return r.json();\n    })\n    .then(function(d){\n      if(!d||!d.stats)return;\n      D=d;\n      document.getElementById('k-u').textContent=d.stats.total_users;\n      document.getElementById('k-b').textContent=d.stats.total_bots;\n      document.getElementById('k-m').textContent=d.stats.messages_today;\n      document.getElementById('k-o').textContent=(d.commandes||[]).length;\n      document.getElementById('k-r').textContent=((d.stats.total_revenue||0)/1000).toFixed(0)+'K F';\n      document.getElementById('ref').textContent='Mis a jour: '+new Date().toLocaleTimeString('fr-FR');\n\n      // CLIENTS\n      var ch='';\n      (d.users||[]).forEach(function(u){\n        var ub=(d.bots||[]).filter(function(b){return b.user_id===u.id;});\n        ch+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+(u.nom||'-')+'</strong></td>'\n          +'<td>'+u.email+'</td>'\n          +'<td>'+pp(u.plan)+'</td>'\n          +'<td>'+ub.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(u.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td><button class=\"ab\" onclick=\"cp(this)\" data-uid=\"'+u.id+'\">Plan</button></td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cl').innerHTML=ch||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucun client</td></tr>';\n\n      // BOTS\n      var bh='';\n      (d.bots||[]).forEach(function(b){\n        var ow=(d.users||[]).find(function(u){return u.id===b.user_id;});\n        var bc=(d.commandes||[]).filter(function(c){return c.bot_id===b.id;});\n        bh+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+b.nom+'</strong></td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+b.niche+'</span></td>'\n          +'<td style=\"color:#888\">'+(ow?ow.email:'-')+'</td>'\n          +'<td>'+(b.messages_count||0)+'</td>'\n          +'<td>'+bc.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(b.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td>'\n            +'<a href=\"/dashboard/'+b.id+'\" target=\"_blank\" class=\"ab\">Dashboard</a>'\n          +'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-bo').innerHTML=bh||'<tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Aucun bot</td></tr>';\n\n      // COMMANDES\n      var oh='';\n      (d.commandes||[]).forEach(function(c){\n        var bo=(d.bots||[]).find(function(b){return b.id===c.bot_id;});\n        oh+='<tr>'\n          +'<td><strong style=\"color:#fff;font-size:12px\">'+(c.numero||c.id.substring(0,8))+'</strong></td>'\n          +'<td>'+(bo?bo.nom:c.bot_id)+'</td>'\n          +'<td>'+(c.client_nom||'-')+'</td>'\n          +'<td style=\"color:#00c875;font-weight:700\">'+(c.total||0).toLocaleString('fr-FR')+' F</td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+c.statut+'</span></td>'\n          +'<td style=\"color:#444;font-size:11px\">'+new Date(c.created_at).toLocaleString('fr-FR')+'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cm').innerHTML=oh||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucune commande</td></tr>';\n\n      // MESSAGES\n      var mh='';\n      (d.recent_messages||[]).slice(0,20).forEach(function(m){\n        var bo=(d.bots||[]).find(function(b){return b.id===m.bot_id;});\n        mh+='<div style=\"display:flex;gap:10px;align-items:flex-start\">'\n          +'<div style=\"font-size:10px;color:#444;min-width:100px;padding-top:4px\">'+new Date(m.created_at).toLocaleTimeString('fr-FR')+'<br>'+(bo?bo.nom:'?')+'<br><span style=\"color:'+(m.role==='user'?'#6366f1':'#00c875')+'\">'+m.role+'</span></div>'\n          +'<div class=\"msg\">'+m.content.substring(0,200)+'</div>'\n          +'</div>';\n      });\n      document.getElementById('msgs-list').innerHTML=mh||'<div style=\"color:#444\">Aucun message</div>';\n    })\n    .catch(function(e){\n      document.getElementById('ref').textContent='Erreur: '+e.message;\n    });\n}\n\nasync function cp(btn){ var uid = btn.getAttribute('data-uid');\n  var plan=prompt('Nouveau plan (free/starter/pro/business):');\n  if(!plan)return;\n  var r=await fetch('/admin/user/'+uid+'/plan',{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Secret':SEC},body:JSON.stringify({plan:plan})});\n  var d=await r.json();\n  if(d.success){alert('Plan mis a jour!');ld();}\n  else alert('Erreur: '+d.error);\n}\n\nld();\nsetInterval(ld,30000);\n</script>\n</body>\n</html>";
 
 app.get('/admin', (req, res) => {
   if (req.query.secret !== ADMIN_SECRET) return res.status(401).send('Non autorise');
@@ -8013,7 +8562,7 @@ td{padding:10px 8px;border-bottom:1px solid #1a1a1a;font-size:13px}
 .p-business{background:#fef3c7;color:#92400e}
 .p-canceled{background:#fecaca;color:#991b1b}
 .p-past_due{background:#fed7aa;color:#9a3412}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 <div class="wrap">
 <h1>💰 Vue CEO — Billing & MRR</h1>
 <div class="kpis" id="kpis"><div style="color:#666">Chargement...</div></div>
@@ -8149,7 +8698,7 @@ input:focus{border-color:#00c875}
 .msg{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
 .msg.show{display:block}.msg.err{background:#fee2e2;color:#dc2626}.msg.ok{background:#dcfce7;color:#166534}
 </style>
-</head>
+<link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="box">
   <div class="logo">Sama<span>Bot</span></div>
@@ -8348,7 +8897,7 @@ body{font-family:-apple-system,sans-serif;background:#f5f7f6;color:#0a1a0f;min-h
 .card-addr{font-size:12px;color:#5a7060;margin-top:6px}
 .card-dist{font-size:11px;color:#00c875;font-weight:700;margin-top:4px}
 .empty{text-align:center;color:#9ab0a0;padding:40px;font-size:13px}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 <div class="hd">
   <div class="hd-emoji">${parent.emoji||'🏢'}</div>
   <div class="hd-nm">${parent.nom}</div>
@@ -8611,7 +9160,7 @@ app.get('/health', async (req, res) => {
     checks.db_latency_ms = Date.now() - t1;
   } catch(e) { checks.database = false; }
   checks.openai = !!CONFIG.OPENAI_API_KEY;
-  checks.wasender = !!CONFIG.WASENDER_API_KEY;
+  checks.wasender = WASENDER_ENABLED && !!CONFIG.WASENDER_API_KEY;
   const allOk = checks.server && checks.database && checks.openai;
   res.status(allOk ? 200 : 503).json({
     status: allOk ? 'healthy' : 'degraded',
@@ -8630,14 +9179,15 @@ app.get('/status', async (req, res) => {
   const uptime = Math.floor((Date.now() - SERVER_START) / 1000);
   const uptime_h = Math.floor(uptime/3600);
   const uptime_d = Math.floor(uptime_h/24);
-  const checks = { db: false, db_ms: 0, openai: !!CONFIG.OPENAI_API_KEY, wasender: !!CONFIG.WASENDER_API_KEY };
+  const checks = { db: false, db_ms: 0, openai: !!CONFIG.OPENAI_API_KEY, wasender: WASENDER_ENABLED && !!CONFIG.WASENDER_API_KEY };
   try {
     const t1 = Date.now();
     const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CONFIG.SUPABASE_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}` }});
     checks.db = r.ok;
     checks.db_ms = Date.now() - t1;
   } catch(e) {}
-  const allUp = checks.db && checks.openai && checks.wasender;
+  // WhatsApp est en mode manuel : son absence ne dégrade pas le service.
+  const allUp = checks.db && checks.openai;
   const errRate = HEALTH_STATS.requests > 0 ? ((HEALTH_STATS.errors/HEALTH_STATS.requests)*100).toFixed(2) : '0.00';
   res.send(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SamaBot Status</title><style>
 *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;color:#0a1a0f;padding:40px 20px;line-height:1.5}
@@ -8662,14 +9212,14 @@ app.get('/status', async (req, res) => {
 .metric-row strong{color:#0a1a0f}
 .footer{text-align:center;color:#999;font-size:12px;margin-top:32px}
 .footer a{color:#06C167;text-decoration:none}
-</style></head><body><div class="container">
+</style><link rel='stylesheet' href='/premium.css'></head><body><div class="container">
 <div class="brand">Sama<span>Bot</span> · Status</div>
 <div class="tagline">Statut en temps réel des services SamaBot</div>
 <div class="banner ${allUp?'up':'down'}"><span class="dot"></span><span>${allUp?'Tous les systèmes sont opérationnels':'Service partiellement dégradé'}</span></div>
 <div class="grid">
 <div class="card"><h3>Database<span class="badge ${checks.db?'ok':'ko'}">${checks.db?'OK':'DOWN'}</span></h3><div class="val">${checks.db?checks.db_ms+'ms':'N/A'}</div><div class="sub">Supabase (PostgreSQL)</div></div>
 <div class="card"><h3>OpenAI IA<span class="badge ${checks.openai?'ok':'ko'}">${checks.openai?'OK':'KO'}</span></h3><div class="val">${checks.openai?'Active':'Down'}</div><div class="sub">GPT-4o-mini</div></div>
-<div class="card"><h3>WhatsApp<span class="badge ${checks.wasender?'ok':'ko'}">${checks.wasender?'OK':'KO'}</span></h3><div class="val">${checks.wasender?'Active':'Down'}</div><div class="sub">WaSenderAPI</div></div>
+<div class="card"><h3>WhatsApp<span class="badge ${checks.wasender?'ok':''}">${checks.wasender?'Auto':'Manuel'}</span></h3><div class="val">${checks.wasender?'Envoi automatique':'Envoi manuel'}</div><div class="sub">${checks.wasender?'Passerelle active':'Notifications par email, liens à envoyer à la main'}</div></div>
 <div class="card"><h3>API Server<span class="badge ok">OK</span></h3><div class="val">${uptime_d}j ${uptime_h%24}h</div><div class="sub">Uptime</div></div>
 </div>
 <div class="metrics">
@@ -8701,7 +9251,7 @@ a{color:#06C167;text-decoration:underline}
 .toc{background:#f9fafb;padding:20px;border-radius:10px;margin-bottom:24px;border-left:4px solid #06C167}
 .toc h3{margin-top:0;color:#0a1a0f}.toc ol{padding-left:20px;font-size:13px}
 .contact{background:#dcfce7;border:1px solid #bbf7d0;padding:18px;border-radius:10px;margin-top:24px}
-</style></head><body><div class="container">
+</style><link rel='stylesheet' href='/premium.css'></head><body><div class="container">
 <h1>Politique de <span class="brand">confidentialité</span></h1>
 <p class="subtitle">Dernière mise à jour : ${new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'})}</p>
 
@@ -8773,7 +9323,7 @@ h2{font-size:20px;color:#06C167;margin-top:32px;margin-bottom:12px;font-weight:7
 p,li{font-size:14.5px;color:#1c1917;margin-bottom:10px}ul{padding-left:24px;margin-bottom:14px}
 a{color:#06C167;text-decoration:underline}
 .warning{background:#fef3c7;border-left:4px solid #f59e0b;padding:14px;margin:20px 0;border-radius:6px;font-size:13.5px}
-</style></head><body><div class="container">
+</style><link rel='stylesheet' href='/premium.css'></head><body><div class="container">
 <h1>Conditions générales d'<span class="brand">utilisation</span></h1>
 <p class="subtitle">Dernière mise à jour : ${new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'})}</p>
 
@@ -9023,7 +9573,56 @@ label{display:block;font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:6
 .checkbox-row input{width:auto;margin:0;flex-shrink:0;margin-top:3px}
 .checkbox-row label{font-size:13px;cursor:pointer;color:#1c1917;font-weight:500}
 .checkbox-row label a{color:#06C167}
-</style></head><body>
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — parcours d'accueil
+   Neutres froids, accent vert réservé aux états sélectionnés.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --o-bg:#FFFFFF; --o-sunken:#F8F9FA; --o-hover:#F1F3F4; --o-active:#E8EAED;
+  --o-tx1:#1A1D1F; --o-tx2:#5F6368; --o-tx3:#8A9099;
+  --o-line:#E8EAED; --o-line2:#DADCE0;
+  --o-brand:#06A85A; --o-brand-tx:#04713C; --o-brand-tint:#EDF9F2;
+  --o-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--o-sunken);color:var(--o-tx1)}
+h1,h2,h3{color:var(--o-tx1);font-weight:600;letter-spacing:-.025em}
+.card,.step,.panel{background:var(--o-bg);border:1px solid var(--o-line);border-radius:12px;box-shadow:none}
+label{font-size:12.5px;font-weight:500;color:var(--o-tx2)}
+input,select,textarea{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx1);font-size:14px;padding:10px 12px;
+  transition:border-color 150ms var(--o-ez),box-shadow 150ms var(--o-ez);
+}
+input:focus,select:focus,textarea:focus{border-color:var(--o-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);outline:none}
+input::placeholder,textarea::placeholder{color:var(--o-tx3)}
+.btn{border-radius:8px;font-size:14.5px;font-weight:500;transition:all 150ms var(--o-ez)}
+.btn-primary{background:var(--o-tx1);color:#fff;border:1px solid var(--o-tx1)}
+.btn-primary:hover{background:#000}
+.btn-primary:disabled{opacity:.45}
+.btn-secondary,.btn-ghost{background:var(--o-bg);color:var(--o-tx1);border:1px solid var(--o-line2)}
+.btn-secondary:hover,.btn-ghost:hover{background:var(--o-hover)}
+.toggle-btn{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx2);font-weight:450;transition:all 150ms var(--o-ez);
+}
+.toggle-btn:hover{background:var(--o-hover)}
+.toggle-btn.active,.toggle-btn.sel{background:var(--o-brand-tint);border-color:var(--o-brand);color:var(--o-brand-tx);font-weight:550}
+.feature-pill{
+  background:var(--o-brand-tint);color:var(--o-brand-tx);border:1px solid #C6EAD8;
+  border-radius:999px;font-size:12.5px;font-weight:550;
+}
+.success-emoji{color:var(--o-brand);margin-bottom:14px}
+.success-card{background:var(--o-sunken);border:1px solid var(--o-line);border-radius:8px;color:var(--o-tx1)}
+.success-card strong{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--o-tx3);font-weight:600;margin-bottom:5px}
+.progress,.progress-bar-bg{background:var(--o-active);border-radius:999px}
+.progress-bar,.progress-fill{background:var(--o-brand);border-radius:999px}
+.btn-remove{
+  background:var(--o-bg);border:1px solid var(--o-line2);border-radius:6px;
+  color:var(--o-tx3);font-size:13px;line-height:1;
+}
+.btn-remove:hover{background:var(--o-hover);color:#D93025;border-color:#D93025}
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="wizard">
 <div class="brand-header"><span>Sama<b>Bot</b> · Onboarding</span><span style="opacity:0.7" id="step-counter">Étape 1/4</span></div>
@@ -9087,18 +9686,18 @@ label{display:block;font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:6
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" onclick="goStep(3)">← Retour</button>
-<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>🚀 Créer mon bot</button>
+<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>Créer mon assistant</button>
 </div>
 </div>
 
 <div class="step" id="step-5">
 <div class="success">
-<div class="success-emoji">🎉</div>
+<div class="success-emoji"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
 <h2>Ton bot est <span style="color:#06C167">live</span> !</h2>
 <p>Bienvenue dans SamaBot. Tu as 3 jours pour tester gratuitement, sans carte bancaire.</p>
-<div class="success-card"><strong>🌐 URL de ton bot</strong><span id="bot-url"></span></div>
-<div class="success-card"><strong>📊 Tableau de bord</strong><span id="dashboard-url"></span></div>
-<div class="success-card"><strong>📝 Code embed (à coller sur ton site)</strong><span id="embed-code"></span></div>
+<div class="success-card"><strong>Lien de votre assistant</strong><span id="bot-url"></span></div>
+<div class="success-card"><strong>Tableau de bord</strong><span id="dashboard-url"></span></div>
+<div class="success-card"><strong>Code à coller sur votre site</strong><span id="embed-code"></span></div>
 <div style="margin-top:24px">
 <span class="feature-pill">✓ Bot créé</span>
 <span class="feature-pill">✓ Trial 3 jours</span>
@@ -9186,18 +9785,18 @@ async function createBot(){
       body: JSON.stringify(state)
     });
     const data = await r.json();
-    if(!r.ok || !data.success){ alert('Erreur: '+(data.error||'inconnu')); btn.disabled = false; btn.textContent = '🚀 Créer mon bot'; return; }
+    if(!r.ok || !data.success){ alert('Erreur: '+(data.error||'inconnu')); btn.disabled = false; btn.textContent = 'Créer mon assistant'; return; }
     document.getElementById('bot-url').textContent = data.bot_url;
     document.getElementById('dashboard-url').textContent = data.dashboard_url;
     document.getElementById('embed-code').textContent = data.embed_code;
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step-5').classList.add('active');
     document.getElementById('progress-bar').style.width = '100%';
-    document.getElementById('step-counter').textContent = '✅ Terminé';
+    document.getElementById('step-counter').textContent = 'Terminé';
   } catch(e){
     alert('Erreur réseau: '+e.message);
     btn.disabled = false;
-    btn.textContent = '🚀 Créer mon bot';
+    btn.textContent = 'Créer mon assistant';
   }
 }
 </script></body></html>`);
@@ -9494,7 +10093,7 @@ app.get('/admin/skills/:botId', async (req, res) => {
 .alert.show{display:block}
 .alert.success{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
 .alert.error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="container">
 <div class="brand">Sama<span>Bot</span> · Skills</div>
@@ -9760,7 +10359,7 @@ textarea{min-height:120px;resize:vertical}
 .alert.show{display:block}
 .alert.success{background:#dcfce7;color:#166534}
 .alert.error{background:#fee2e2;color:#991b1b}
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="container">
 <div class="brand">Sama<span>Bot</span> · Documents RAG</div>
@@ -10656,13 +11255,62 @@ label .req{color:#dc2626}
 .checkbox-row input{width:auto;margin:0;flex-shrink:0;margin-top:3px}
 .checkbox-row label{font-size:13px;cursor:pointer;color:#1c1917;font-weight:500}
 .checkbox-row label a{color:#06C167}
+
+/* ══════════════════════════════════════════════════════════
+   REFONTE PREMIUM — parcours d'accueil
+   Neutres froids, accent vert réservé aux états sélectionnés.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --o-bg:#FFFFFF; --o-sunken:#F8F9FA; --o-hover:#F1F3F4; --o-active:#E8EAED;
+  --o-tx1:#1A1D1F; --o-tx2:#5F6368; --o-tx3:#8A9099;
+  --o-line:#E8EAED; --o-line2:#DADCE0;
+  --o-brand:#06A85A; --o-brand-tx:#04713C; --o-brand-tint:#EDF9F2;
+  --o-ez:cubic-bezier(.2,0,0,1);
+}
+body{background:var(--o-sunken);color:var(--o-tx1)}
+h1,h2,h3{color:var(--o-tx1);font-weight:600;letter-spacing:-.025em}
+.card,.step,.panel{background:var(--o-bg);border:1px solid var(--o-line);border-radius:12px;box-shadow:none}
+label{font-size:12.5px;font-weight:500;color:var(--o-tx2)}
+input,select,textarea{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx1);font-size:14px;padding:10px 12px;
+  transition:border-color 150ms var(--o-ez),box-shadow 150ms var(--o-ez);
+}
+input:focus,select:focus,textarea:focus{border-color:var(--o-brand);box-shadow:0 0 0 3px rgba(6,168,90,.12);outline:none}
+input::placeholder,textarea::placeholder{color:var(--o-tx3)}
+.btn{border-radius:8px;font-size:14.5px;font-weight:500;transition:all 150ms var(--o-ez)}
+.btn-primary{background:var(--o-tx1);color:#fff;border:1px solid var(--o-tx1)}
+.btn-primary:hover{background:#000}
+.btn-primary:disabled{opacity:.45}
+.btn-secondary,.btn-ghost{background:var(--o-bg);color:var(--o-tx1);border:1px solid var(--o-line2)}
+.btn-secondary:hover,.btn-ghost:hover{background:var(--o-hover)}
+.toggle-btn{
+  border:1px solid var(--o-line2);border-radius:8px;background:var(--o-bg);
+  color:var(--o-tx2);font-weight:450;transition:all 150ms var(--o-ez);
+}
+.toggle-btn:hover{background:var(--o-hover)}
+.toggle-btn.active,.toggle-btn.sel{background:var(--o-brand-tint);border-color:var(--o-brand);color:var(--o-brand-tx);font-weight:550}
+.feature-pill{
+  background:var(--o-brand-tint);color:var(--o-brand-tx);border:1px solid #C6EAD8;
+  border-radius:999px;font-size:12.5px;font-weight:550;
+}
+.success-emoji{color:var(--o-brand);margin-bottom:14px}
+.success-card{background:var(--o-sunken);border:1px solid var(--o-line);border-radius:8px;color:var(--o-tx1)}
+.success-card strong{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--o-tx3);font-weight:600;margin-bottom:5px}
+.progress,.progress-bar-bg{background:var(--o-active);border-radius:999px}
+.progress-bar,.progress-fill{background:var(--o-brand);border-radius:999px}
+.btn-remove{
+  background:var(--o-bg);border:1px solid var(--o-line2);border-radius:6px;
+  color:var(--o-tx3);font-size:13px;line-height:1;
+}
+.btn-remove:hover{background:var(--o-hover);color:#D93025;border-color:#D93025}
 @media(max-width:600px){
   .niche-grid{grid-template-columns:1fr}
   .row-2col{grid-template-columns:1fr}
   .color-row{grid-template-columns:repeat(3,1fr)}
   .multi-grid{grid-template-columns:repeat(2,1fr)}
 }
-</style></head><body>
+</style><link rel='stylesheet' href='/premium.css'></head><body>
 
 <div class="wizard">
 <div class="brand-header"><span>Sama<b>Bot</b> · Onboarding intelligent v2</span><span style="opacity:0.7" id="step-counter">Étape 1/5</span></div>
@@ -10712,7 +11360,7 @@ label .req{color:#dc2626}
 <div class="catalogue-list" id="catalogue-list"></div>
 <button class="btn-add" onclick="addCatalogueItem()">+ Ajouter un <span id="cat-singular">item</span></button>
 <div style="margin-top:24px">
-<label>🎨 Couleur du bot</label>
+<label>Couleur de l'assistant</label>
 <div class="color-row" id="color-row">
 <div class="color-swatch selected" data-color="#06C167" style="background:#06C167"></div>
 <div class="color-swatch" data-color="#3b82f6" style="background:#3b82f6"></div>
@@ -10739,18 +11387,18 @@ label .req{color:#dc2626}
 </div>
 <div class="btn-row">
 <button class="btn btn-secondary" onclick="goStep(4)">← Retour</button>
-<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>🚀 Créer mon bot</button>
+<button class="btn btn-primary" id="btn-create" onclick="createBot()" disabled>Créer mon assistant</button>
 </div>
 </div>
 
 <div class="step" id="step-6">
 <div class="success">
-<div class="success-emoji">🎉</div>
+<div class="success-emoji"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg></div>
 <h2>Ton bot est <span class="accent">live</span> !</h2>
 <p>Bienvenue dans SamaBot. 3 jours d'essai gratuit, sans carte bancaire.</p>
-<div class="success-card"><strong>🌐 URL de ton bot</strong><span id="bot-url"></span></div>
-<div class="success-card"><strong>📊 Tableau de bord</strong><span id="dashboard-url"></span></div>
-<div class="success-card"><strong>📝 Code embed</strong><span id="embed-code"></span></div>
+<div class="success-card"><strong>Lien de votre assistant</strong><span id="bot-url"></span></div>
+<div class="success-card"><strong>Tableau de bord</strong><span id="dashboard-url"></span></div>
+<div class="success-card"><strong>Code à coller sur votre site</strong><span id="embed-code"></span></div>
 <div style="margin-top:24px"><div id="success-pills"></div></div>
 <div class="btn-row" style="margin-top:24px;justify-content:center">
 <button class="btn btn-primary" onclick="goToBot()">→ Tester mon bot</button>
@@ -10892,7 +11540,7 @@ function renderCatalogue() {
     '<div class="catalogue-item">' +
     '<input type="text" placeholder="' + currentTemplate.placeholder_item + '" value="' + (item.nom || '') + '" onchange="updateCatalogueItem(' + idx + ', \\'nom\\', this.value)">' +
     '<input type="text" placeholder="' + currentTemplate.placeholder_price + '" value="' + (item.prix || '') + '" onchange="updateCatalogueItem(' + idx + ', \\'prix\\', this.value)">' +
-    '<button class="btn-remove" type="button" onclick="removeCatalogueItem(' + idx + ')">🗑</button>' +
+    '<button class="btn-remove" type="button" onclick="removeCatalogueItem(' + idx + ')" aria-label="Retirer">✕</button>' +
     '</div>'
   ).join('');
 }
@@ -10933,13 +11581,13 @@ function goStep(n) {
   if (n === 5) {
     const t = currentTemplate;
     let html = '<strong>' + t.icon + ' ' + t.label + '</strong>: ' + state.business_name + '<br>';
-    html += '📍 ' + state.ville;
-    if (state.telephone_pro) html += ' · 📱 ' + state.telephone_pro;
-    html += '<br>🎨 Couleur ' + state.color;
-    html += '<br>🧠 Skills auto: ' + t.skills_auto.join(', ');
+    html += state.ville;
+    if (state.telephone_pro) html += ' · ' + state.telephone_pro;
+    html += '<br>Couleur ' + state.color;
+    html += '<br>Compétences automatiques : ' + t.skills_auto.join(', ');
     const validCat = state.catalogue_items.filter(i => i.nom);
     if (validCat.length > 0) {
-      html += '<br>📋 ' + validCat.length + ' ' + t.catalogue_label.toLowerCase() + ' configurés';
+      html += '<br>' + validCat.length + ' ' + t.catalogue_label.toLowerCase() + ' configurés';
     }
     document.getElementById('preview').innerHTML = html;
   }
@@ -10977,7 +11625,7 @@ async function createBot() {
     if (!r.ok || !data.success) {
       alert('Erreur: ' + (data.error || 'inconnue'));
       btn.disabled = false;
-      btn.textContent = '🚀 Créer mon bot';
+      btn.textContent = 'Créer mon assistant';
       return;
     }
     document.getElementById('bot-url').textContent = data.bot_url;
@@ -10994,13 +11642,13 @@ async function createBot() {
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.getElementById('step-6').classList.add('active');
     document.getElementById('progress-bar').style.width = '100%';
-    document.getElementById('step-counter').textContent = '✅ Terminé';
+    document.getElementById('step-counter').textContent = 'Terminé';
     
     window.__BOT_URL = data.bot_url;
   } catch(e) {
     alert('Erreur réseau: ' + e.message);
     btn.disabled = false;
-    btn.textContent = '🚀 Créer mon bot';
+    btn.textContent = 'Créer mon assistant';
   }
 }
 
@@ -11145,14 +11793,14 @@ ${memory.email ? `- Email: ${memory.email}` : ''}
   // Force le bot à respecter l'ordre des étapes, sans confirmer avant le récap
   const paiementsAcceptes = bot.paiement || 'à la livraison';
   const flowStrict = `\n\n═══════════════════════════════════════════════
-🚨 FLOW DE COMMANDE — RÈGLES ABSOLUES À RESPECTER 🚨
+FLOW DE COMMANDE — RÈGLES ABSOLUES À RESPECTER
 ═══════════════════════════════════════════════
 
 INTERDICTIONS STRICTES:
-❌ NE DIS JAMAIS "Commande confirmée" tant que le client n'a PAS vu le récap ET dit "Oui"
-❌ NE DIS JAMAIS "Paiement à la livraison noté" avant d'avoir reçu le choix du paiement
-❌ NE PROPOSE JAMAIS le paiement avant l'étape 4 (après confirmation)
-❌ NE SAUTE AUCUNE étape, même si le client semble pressé
+- NE DIS JAMAIS "Commande confirmée" tant que le client n'a PAS vu le récap ET dit "Oui"
+- NE DIS JAMAIS "Paiement à la livraison noté" avant d'avoir reçu le choix du paiement
+- NE PROPOSE JAMAIS le paiement avant l'étape 4 (après confirmation)
+- NE SAUTE AUCUNE étape, même si le client semble pressé
 
 ORDRE OBLIGATOIRE (5 étapes):
 
@@ -11163,43 +11811,37 @@ ORDRE OBLIGATOIRE (5 étapes):
 
 ÉTAPE 2 — Client choisit un produit (ex: "café arabica"):
   → Annonce le détail: "Votre commande: [produit] = [prix] FCFA${bot.livraison_actif?` + livraison [frais] FCFA = total [total] FCFA`:''}"
-  → Demande SES INFOS: "Pour finaliser, j'ai besoin de:
-     • Votre prénom
-     • Votre numéro
-     ${bot.livraison_actif?'• Votre adresse de livraison (utilisez le bouton GPS)':''}"
-  → ❌ NE PARLE PAS de paiement encore !
+  → Demande ses infos en une phrase, pas en liste à puces:
+     "Il me faut votre prénom, votre numéro${bot.livraison_actif?' et votre adresse de livraison':''}."
+  → NE PARLE PAS de paiement encore.
   → STOP. Attends ses infos.
 
 ÉTAPE 3 — Client donne ses infos (nom + tél + adresse):
-  → Fais le RÉCAPITULATIF EXACT:
-    "📋 *Récapitulatif:*
-    👤 Nom: [prénom]
-    📞 Tél: [numéro]
-    ${bot.livraison_actif?'📍 Adresse: [adresse]':''}
-    🛍️ Article: [produit]
-    💰 *Total: [montant] FCFA*
-    ${bot.livraison_actif?`🛵 Livraison: ${bot.livraison_delai||'30-45 min'}`:''}
-
-    Confirmez-vous votre commande ? Répondez *OUI* pour valider."
-  → ❌ NE PARLE PAS de paiement encore !
+  → Récapitule en UNE PHRASE NATURELLE:
+    "Donc [produit], [montant] F${bot.livraison_actif?' livraison comprise':''}, au nom de [prénom]${bot.livraison_actif?' à [adresse]':''}. Je valide ?"
+  → INTERDIT: le mot "Récapitulatif", les étiquettes "Nom :", "Tél :", "Total :",
+    les astérisques, les puces et tout émoji.
+  → Si une information manque, redemande-la. N'invente jamais un numéro ni une adresse.
+  → NE PARLE PAS de paiement encore.
   → STOP. Attends sa confirmation.
 
 ÉTAPE 4 — SEULEMENT après que le client a dit "Oui":
-  → Réponds: "✅ *Commande confirmée!*
-    💳 Comment souhaitez-vous payer ?
-    ${paiementsAcceptes.toLowerCase().includes('livraison') ? '• À la livraison' : ''}
-    ${paiementsAcceptes.toLowerCase().includes('wave') ? '• Wave' : ''}
-    ${paiementsAcceptes.toLowerCase().includes('orange') ? '• Orange Money' : ''}
-    ${paiementsAcceptes.toLowerCase().includes('espèce') || paiementsAcceptes.toLowerCase().includes('espece') ? '• Espèces' : ''}"
+  → Réponds sobrement: "C'est noté. Comment souhaitez-vous payer ?"
+    puis liste seulement les moyens acceptés, séparés par des virgules:
+    ${[paiementsAcceptes.toLowerCase().includes('livraison') ? 'à la livraison' : '',
+       paiementsAcceptes.toLowerCase().includes('wave') ? 'Wave' : '',
+       paiementsAcceptes.toLowerCase().includes('orange') ? 'Orange Money' : '',
+       (paiementsAcceptes.toLowerCase().includes('espèce') || paiementsAcceptes.toLowerCase().includes('espece')) ? 'espèces' : ''
+      ].filter(Boolean).join(', ')}
+  → Pas de coche, pas de gras, pas de "Commande confirmée !".
   → STOP. Attends son choix.
 
 ÉTAPE 5 — Client choisit le mode de paiement:
-  → Confirme: "✅ Paiement [méthode] noté.
-    🛵 Votre commande sera livrée dans ${bot.livraison_delai||'30-45 min'}.
-    Jërëjëf [prénom] !"
+  → Confirme en une phrase, sans "Parfait" ni "Excellent":
+    "[Méthode], entendu. Livraison dans ${bot.livraison_delai||'30-45 min'}. Jërëjëf [prénom]."
 
 PAIEMENTS ACCEPTÉS POUR CE BOT: ${paiementsAcceptes}
-⚠️ NE PROPOSE QUE les modes de paiement listés ci-dessus, RIEN D'AUTRE.
+NE PROPOSE QUE les modes de paiement listés ci-dessus, RIEN D'AUTRE.
 
 ═══════════════════════════════════════════════`;
   memBlock += flowStrict;
@@ -11286,7 +11928,63 @@ ${skillsTexts}
 - Sois concis dans la liste textuelle (le widget affichera les photos automatiquement)`;
   }
 
-  return basePrompt + memBlock + nicheAdjust + skillsBlock + catWithPhotosBlock;
+  // 6) Voix — placé en DERNIER pour primer sur toute consigne de style précédente
+  return basePrompt + memBlock + nicheAdjust + skillsBlock + catWithPhotosBlock + voixPremium();
+}
+
+// ─── VOIX — supprime les marqueurs qui trahissent une IA ─────
+// Ajouté à la fin de chaque prompt : étant le dernier, il l'emporte
+// sur les consignes de style formulées plus haut.
+// Déclaré en fonction (et non en const) pour être disponible
+// quel que soit l'ordre d'évaluation du fichier.
+function voixPremium() {
+  return `
+
+═══════════════════════════════════════════════
+STYLE — CES RÈGLES PRIMENT SUR TOUTES LES AUTRES
+Tu représentes un commerce réel. Tu écris comme le propriétaire,
+pas comme un assistant virtuel.
+═══════════════════════════════════════════════
+
+LONGUEUR
+- Une à trois phrases. Réponds à ce qui est demandé, rien de plus.
+- Si la réponse tient en cinq mots, écris cinq mots.
+
+À NE JAMAIS FAIRE
+- Aucun émoji en début de ligne, devant un libellé ou dans un récapitulatif.
+- Aucun formatage: pas d'astérisques, pas de gras, pas de titres, pas de puces,
+  sauf pour énumérer de vrais produits.
+- Aucune formule d'enthousiasme: "Parfait", "Excellent choix", "Super",
+  "Avec plaisir", "Je serais ravi", "N'hésitez pas".
+- Ne termine pas systématiquement par une question ou une offre d'aide.
+  Une vraie conversation comporte des messages qui s'arrêtent simplement.
+- Ne dis jamais "En tant qu'assistant", "Je suis là pour vous aider",
+  "Je comprends votre demande", "Bien noté".
+- Ne répète pas la question du client avant d'y répondre.
+- Ne t'excuse pas si tu n'as rien fait de mal.
+
+RYTHME
+- Varie la longueur de tes messages: deux réponses de structure identique
+  se remarquent immédiatement.
+- Commence par l'information utile, sans préambule.
+- À éviter: "Bonjour et merci pour votre message. Je comprends que vous
+  cherchez nos tarifs. Voici les détails."
+- À faire: "Le brushing est à 8 000 F, comptez 45 minutes."
+
+CHIFFRES
+- Montants simples: 6 000 F, 15 000 F. Une seule mention de FCFA par échange suffit.
+- Jamais un prix en gras ni précédé d'un émoji.
+
+HONNÊTETÉ
+- Si on te demande directement si tu es un robot ou une IA, reconnais-le
+  simplement puis enchaîne sur la demande. Ne mens jamais là-dessus.
+- Si tu ne sais pas, dis-le en une phrase et propose de faire suivre au responsable.
+  N'invente jamais un prix, un stock, un horaire ou une adresse.
+
+CE QUI RESTE PERMIS
+- Un émoji occasionnel dans une phrase, au maximum un par message,
+  jamais en début de ligne. La chaleur vient de la brièveté et de la précision.
+═══════════════════════════════════════════════`;
 }
 
 // ─── ENDPOINT : CATALOGUE AVEC PHOTOS ────────────────────────
@@ -11342,6 +12040,501 @@ app.delete('/chat/memory/:sid', (req, res) => {
 });
 
 // FIN BLOC v10.7 ────────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════
+// 🧠 INTELLIGENCE SECTORIELLE — ajoute en fin de server.js
+// Pour chaque secteur, le bot connaît les questions types,
+// comment y répondre, les règles métier, les relances.
+// ════════════════════════════════════════════════════════════
+ 
+const SECTOR_INTELLIGENCE = {
+ 
+  banque: {
+    label: 'Banque',
+    intents: [
+      { id:'horaires',      triggers:['heure','ouvert','fermé','horaire','samedi'] },
+      { id:'agence_proche', triggers:['agence','proche','adresse','où'] },
+      { id:'carte_perdue',  triggers:['carte','bloqué','perdu','volé','opposition','fraude'] },
+      { id:'ouvrir_compte', triggers:['ouvrir','créer','nouveau compte'] },
+      { id:'pret',          triggers:['prêt','crédit','emprunt','financement'] },
+      { id:'frais',         triggers:['frais','commission','tarif'] },
+      { id:'virement',      triggers:['virement','transfert','wave','mobile money'] },
+      { id:'solde',         triggers:['solde','consulter compte','relevé'] },
+      { id:'reclamation',   triggers:['plainte','problème','réclamation','litige'] },
+    ],
+    responses: {
+      horaires: 'Donne horaires (bot.horaires). Mention week-end + jours fériés.',
+      agence_proche: 'Demande VILLE/QUARTIER, puis indique 2-3 agences proches.',
+      carte_perdue: '🚨 URGENT. Numéro opposition 24/7 IMMÉDIATEMENT. Insiste sur urgence.',
+      ouvrir_compte: 'Liste pièces (CNI, justif domicile, photo, dépôt). Propose RDV agence.',
+      pret: 'Demande montant, durée, motif. Dossier à étudier. JAMAIS promettre accord.',
+      frais: 'Tarifs (tenue compte, retrait DAB, virement). Sinon grille officielle.',
+      virement: 'Redirige vers app mobile ou agence. JAMAIS demander RIB ni initier.',
+      solde: 'TU NE PEUX PAS donner solde. Redirige app officielle, USSD, agence.',
+      reclamation: 'Demande motif, agence, date. Ticket créé. Délai: 30 jours.',
+    },
+    rules: [
+      '❌ JAMAIS demander mot de passe, PIN, code SMS, RIB, CVV',
+      '❌ JAMAIS effectuer transaction (virement, retrait, opposition)',
+      '❌ JAMAIS donner solde sans authentification forte',
+      '✅ Carte perdue/fraude: numéro opposition 24/7 IMMÉDIATEMENT',
+      '✅ Confidentialité absolue',
+    ],
+    quick_replies: ['🕐 Horaires','📍 Agence proche','💳 Carte perdue','📂 Ouvrir compte','💰 Tarifs','📞 Contact'],
+    follow_ups: {
+      agence_proche:'Dans quel quartier êtes-vous ?',
+      ouvrir_compte:'Compte particulier ou entreprise ?',
+      pret:'Quel montant et pour quel projet ?',
+    },
+  },
+ 
+  boutique: {
+    label: 'Boutique',
+    intents: [
+      { id:'voir_produits', triggers:['produit','article','catalogue','que vendez','collection'] },
+      { id:'disponibilite', triggers:['dispo','stock','reste','rupture'] },
+      { id:'prix',          triggers:['prix','coût','combien'] },
+      { id:'taille_couleur',triggers:['taille','couleur','pointure'] },
+      { id:'livraison',     triggers:['livr','envoi','délai'] },
+      { id:'commander',     triggers:['commander','acheter','veux'] },
+      { id:'paiement',      triggers:['payer','wave','orange money','cash'] },
+      { id:'retour',        triggers:['retour','échange','rembourser'] },
+      { id:'horaires',      triggers:['heure','ouvert'] },
+      { id:'localisation',  triggers:['où','adresse','magasin'] },
+    ],
+    responses: {
+      voir_produits: 'Présente catalogue de manière attractive. Photos via cards si dispo.',
+      disponibilite: 'Vérifie stock. Si incertain, propose commande pour réserver.',
+      prix: 'Prix exact du produit. Liste variants. Mentionne promos en cours.',
+      taille_couleur: 'Liste variants. Si info absente, suggère contact magasin.',
+      livraison: 'Donne frais, zones, délai (bot.livraison_*). Sinon retrait magasin.',
+      commander: 'Flux: produit → quantité → infos client → récap → confirmation → paiement.',
+      paiement: 'Liste modes acceptés. Wave/OM: donne numéros. Mention livraison.',
+      retour: 'Demande n° commande, motif, photo si défaut. Politique retour 7-14j.',
+      horaires: 'bot.horaires. Jours fermés.',
+      localisation: 'bot.adresse + maps.',
+    },
+    rules: [
+      '✅ Toujours proposer photos quand produit mentionné',
+      '✅ Mentionner frais livraison AVANT confirmation finale',
+      '❌ Ne jamais inventer un produit absent du catalogue',
+      '❌ Ne jamais promettre délai livraison sans bot.livraison_delai défini',
+    ],
+    quick_replies: ['🛍️ Voir produits','📦 Commander','🚚 Livraison','💰 Tarifs','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      voir_produits: 'Quel type de produit recherchez-vous ?',
+      livraison: 'Dans quelle zone êtes-vous ?',
+      commander: 'Quel produit souhaitez-vous ?',
+    },
+  },
+ 
+  restaurant: {
+    label: 'Restaurant',
+    intents: [
+      { id:'voir_menu',      triggers:['menu','carte','plat','spécialité'] },
+      { id:'plat_du_jour',   triggers:['plat du jour','aujourd','spécial'] },
+      { id:'commander',      triggers:['commander','livrer'] },
+      { id:'reserver_table', triggers:['réserver','table','place'] },
+      { id:'livraison',      triggers:['livr','délai','temps'] },
+      { id:'horaires',       triggers:['heure','ouvert','midi','soir'] },
+      { id:'allergies',      triggers:['allergie','gluten','halal','vegan','porc'] },
+      { id:'localisation',   triggers:['où','adresse','parking'] },
+      { id:'groupe',         triggers:['groupe','mariage','anniversaire','évènement'] },
+    ],
+    responses: {
+      voir_menu: 'Présente menu de manière appétissante. Mets en valeur spécialités.',
+      plat_du_jour: 'Donne plat du jour si dispo. Sinon propose 2-3 plats phares.',
+      commander: 'Flux: plat → quantité → suppléments → infos client → adresse → confirmation.',
+      reserver_table: 'Demande date, heure, nb personnes, nom, tél. Vérifie dispo.',
+      livraison: 'Délai 30-45 min typique. Zones + frais bot.livraison_*.',
+      horaires: 'bot.horaires. Distingue midi (12h-15h) et soir (19h-23h).',
+      allergies: '🚨 Allergie GRAVE: TOUJOURS proposer confirmation avec chef. Risque vital.',
+      localisation: 'bot.adresse + maps. Mentionne parking.',
+      groupe: 'Prise brief: date, nb invités, type événement, budget. Rappel commercial.',
+    },
+    rules: [
+      '✅ Allergie grave (arachide, fruits de mer): TOUJOURS confirmer avec le chef',
+      '✅ Pour événement: prévoir délai de préparation',
+      '❌ Ne jamais inventer un plat absent du menu',
+    ],
+    quick_replies: ['🍽️ Menu','📦 Commander','📅 Réserver table','🚚 Livraison','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      voir_menu: 'Vous cherchez quoi en particulier ?',
+      reserver_table: 'Pour combien de personnes et quelle date ?',
+      groupe: 'Combien d\'invités et quelle date ?',
+    },
+  },
+ 
+  salon: {
+    label: 'Salon de beauté',
+    intents: [
+      { id:'prestations', triggers:['prestation','service','coiffure','manucure','maquillage'] },
+      { id:'prendre_rdv', triggers:['rdv','créneau','disponible','libre'] },
+      { id:'tarifs',      triggers:['prix','tarif','combien'] },
+      { id:'duree',       triggers:['durée','temps','combien de temps'] },
+      { id:'tresses',     triggers:['tresses','mèches','défrisage','extension','locks'] },
+      { id:'a_domicile',  triggers:['domicile','maison','venir chez'] },
+      { id:'enfants',     triggers:['enfant','bébé','fille'] },
+      { id:'horaires',    triggers:['heure','ouvert'] },
+    ],
+    responses: {
+      prestations: 'Liste prestations bot.catalogue avec prix ET durée.',
+      prendre_rdv: 'Flux RDV: prestation → date/heure → infos client → confirmation.',
+      tarifs: 'Prix précis si prestation mentionnée. Sinon liste principales.',
+      duree: 'Durée typique (coupe 30min, tresses 3-4h, mèches 2h).',
+      tresses: 'Confirme si proposé. Durée + prix. Mention RDV nécessaire.',
+      a_domicile: 'Confirme si dispo. Si oui: zones + frais.',
+      enfants: 'Confirme prestations enfants. Tarifs spéciaux possibles.',
+      horaires: 'bot.horaires + jours fermeture.',
+    },
+    rules: [
+      '✅ TOUJOURS donner la durée (essentiel pour s\'organiser)',
+      '✅ RDV forte demande (samedi, mariage): confirmer rapidement',
+      '✅ Prestations longues (>3h): suggérer arrivée à jeun + collation',
+      '❌ Ne jamais promettre résultat précis (chevelures différentes)',
+    ],
+    quick_replies: ['💇 Prestations','📅 Prendre RDV','💰 Tarifs','⏱️ Durées','📍 Adresse','📞 Contact'],
+    follow_ups: {
+      prestations: 'Vous cherchez quel type de prestation ?',
+      prendre_rdv: 'Quelle prestation et quel jour vous arrange ?',
+    },
+  },
+ 
+  pharmacie: {
+    label: 'Pharmacie',
+    intents: [
+      { id:'medicament', triggers:['médicament','avoir','disponible','paracétamol','doliprane'] },
+      { id:'garde',      triggers:['garde','nuit','urgence','dimanche'] },
+      { id:'horaires',   triggers:['heure','ouvert'] },
+      { id:'livraison',  triggers:['livr','apporter'] },
+      { id:'ordonnance', triggers:['ordonnance','prescription','docteur'] },
+      { id:'mutuelle',   triggers:['mutuelle','remboursement','ipres'] },
+      { id:'symptomes',  triggers:['fièvre','mal de tête','douleur','symptôme','malade'] },
+    ],
+    responses: {
+      medicament: 'Si dans catalogue: confirme dispo + prix. Sinon "je vérifie, contactez pharmacien".',
+      garde: 'Horaires garde si bot.pharmacie_garde. Sinon liste officielle.',
+      horaires: 'bot.horaires. Distingue ouvré/week-end. Garde 24/7 si applicable.',
+      livraison: 'Zones + frais + délai. Ordonnance requise: photo.',
+      ordonnance: 'Demande photo via WhatsApp. Confirme dispo + prix total avant livraison.',
+      mutuelle: 'Liste mutuelles acceptées. Pièces: carte mutuelle + ordonnance.',
+      symptomes: '🚨 NE JAMAIS donner conseil médical. Réponse: "Vos symptômes nécessitent avis professionnel. Consultez médecin ou parlez pharmacien. Urgence: SAMU 1515."',
+    },
+    rules: [
+      '❌ JAMAIS de conseil médical, JAMAIS de diagnostic',
+      '❌ JAMAIS recommander médicament éthique sans ordonnance',
+      '✅ Symptômes décrits: REDIRECTION vers pharmacien ou médecin',
+      '✅ Urgence médicale: SAMU 1515 IMMÉDIATEMENT',
+    ],
+    quick_replies: ['💊 Médicaments','🚨 Garde','🚚 Livraison','🕐 Horaires','📍 Adresse'],
+    follow_ups: {
+      medicament: 'Quel médicament cherchez-vous ?',
+      ordonnance: 'Pouvez-vous envoyer la photo de l\'ordonnance ?',
+    },
+  },
+ 
+  clinique: {
+    label: 'Clinique médicale',
+    intents: [
+      { id:'specialites', triggers:['spécialité','médecin','cardio','pédiatr','gyneco','dentiste'] },
+      { id:'prendre_rdv', triggers:['rdv','consulter','consultation','voir médecin'] },
+      { id:'urgences',    triggers:['urgence','urgent','grave','accident'] },
+      { id:'tarifs',      triggers:['prix','tarif','consultation'] },
+      { id:'mutuelle',    triggers:['mutuelle','tiers payant'] },
+      { id:'resultats',   triggers:['résultat','analyse','bilan'] },
+      { id:'symptomes',   triggers:['mal','douleur','fièvre','malade'] },
+    ],
+    responses: {
+      specialites: 'Liste spécialités. Médecin référent et horaires si dispo.',
+      prendre_rdv: 'Flux: spécialité → motif court → date/heure → infos patient.',
+      urgences: '🚨 Donne numéro et adresse direct. Sinon SAMU 1515. Douleur thoracique/AVC: 1515.',
+      tarifs: 'Tarifs par spécialité. Tiers payant possible avec mutuelle.',
+      mutuelle: 'Mutuelles acceptées. Documents: carte mutuelle + CNI.',
+      resultats: 'NE JAMAIS donner résultats dans le chat. Redirige secrétariat. Délais 24-72h.',
+      symptomes: '🚨 NE JAMAIS donner diagnostic. "RDV avec généraliste ?" Si urgence: 1515.',
+    },
+    rules: [
+      '❌ JAMAIS de diagnostic, JAMAIS de prescription, JAMAIS d\'interprétation analyses',
+      '❌ JAMAIS donner résultats dans le chat (confidentialité)',
+      '❌ JAMAIS confirmer si patient suivi ou non (secret médical)',
+      '✅ Symptômes: REDIRECTION OBLIGATOIRE vers consultation',
+      '✅ Urgences (thoracique, AVC, hémorragie, malaise): SAMU 1515',
+    ],
+    quick_replies: ['🏥 Spécialités','📅 Prendre RDV','🚨 Urgences','💰 Tarifs','🏛️ Mutuelles'],
+    follow_ups: {
+      specialites: 'Quelle spécialité vous intéresse ?',
+      prendre_rdv: 'Pour quelle spécialité et quel jour ?',
+    },
+  },
+ 
+  hotel: {
+    label: 'Hôtel',
+    intents: [
+      { id:'reserver',     triggers:['réserver','chambre','disponible','nuit'] },
+      { id:'tarifs',       triggers:['prix','tarif','nuit'] },
+      { id:'types',        triggers:['type','standard','deluxe','suite','double'] },
+      { id:'services',     triggers:['wifi','piscine','parking','petit-déj','spa'] },
+      { id:'check_in_out', triggers:['check','arriver','partir','départ'] },
+      { id:'annulation',   triggers:['annuler','rembourser'] },
+      { id:'groupe',       triggers:['groupe','mariage','séminaire'] },
+      { id:'transport',    triggers:['navette','aéroport','taxi'] },
+    ],
+    responses: {
+      reserver: 'Demande dates (arrivée+départ), nb personnes, type chambre. Récap avec total.',
+      tarifs: 'Prix par nuit selon type. Précise inclus/non inclus.',
+      types: 'Liste types (bot.catalogue) avec prix par nuit et capacité.',
+      services: 'Liste services inclus. Heures accès si applicable.',
+      check_in_out: 'Check-in 14h-15h, check-out 11h-12h. Late check-out à confirmer.',
+      annulation: 'Gratuite jusqu\'à X jours avant. Demande date résa.',
+      groupe: 'Groupes 8+ chambres: tarifs négociés, commercial rappelle.',
+      transport: 'Si navette aéroport: confirme service + horaires + prix.',
+    },
+    rules: [
+      '✅ Confirmer dates exactes AVANT validation',
+      '✅ Préciser inclus/non inclus dans le prix',
+      '✅ Politique annulation claire dès le début',
+      '❌ Ne jamais bloquer chambre sans dépôt',
+    ],
+    quick_replies: ['🏨 Chambres','📅 Réserver','💰 Tarifs','🍳 Services','📍 Adresse'],
+    follow_ups: {
+      reserver: 'Pour quelles dates et combien de personnes ?',
+      tarifs: 'Pour quelle date et quel type de chambre ?',
+    },
+  },
+ 
+  transport: {
+    label: 'Taxi / Transport',
+    intents: [
+      { id:'reserver_course', triggers:['réserver','course','taxi','venir','chercher'] },
+      { id:'tarif',           triggers:['prix','tarif','combien'] },
+      { id:'zones',           triggers:['zone','aller','jusqu'] },
+      { id:'disponibilite',   triggers:['libre','maintenant','urgent'] },
+      { id:'longue_distance', triggers:['saint-louis','thiès','mbour','voyage'] },
+      { id:'aeroport',        triggers:['aéroport','aibd','avion'] },
+    ],
+    responses: {
+      reserver_course: 'Demande lieu prise en charge, destination, heure, nb passagers. Tarif estimé.',
+      tarif: 'Si lieux précisés: estimation. Sinon demande départ+destination.',
+      zones: 'bot.zones_couverture. Hors zone: tarif spécial ou refus.',
+      disponibilite: 'Dispo immédiate si 24/7. Sinon heures service.',
+      longue_distance: 'Inter-urbain: 25-100K FCFA. Confirmer chauffeur dispo.',
+      aeroport: 'Navette AIBD: 15-25K selon zone Dakar. Confirme heure vol.',
+    },
+    rules: [
+      '✅ TOUJOURS confirmer lieu prise en charge ET destination AVANT tarif',
+      '✅ Mentionner majorations heure pointe/nuit',
+      '✅ Pour vols: marge 1h30 avant décollage',
+      '❌ Ne jamais accepter course sans confirmer dispo chauffeur',
+    ],
+    quick_replies: ['🚖 Réserver','💰 Tarifs','✈️ Aéroport','📍 Zones'],
+    follow_ups: {
+      reserver_course: 'D\'où à où, et pour quelle heure ?',
+      aeroport: 'Vol au départ ou à l\'arrivée, quelle heure ?',
+    },
+  },
+ 
+  'auto-ecole': {
+    label: 'Auto-école',
+    intents: [
+      { id:'forfaits',    triggers:['forfait','pack','formule'] },
+      { id:'permis_b',    triggers:['permis b','voiture'] },
+      { id:'permis_a',    triggers:['permis a','moto'] },
+      { id:'inscription', triggers:['inscrire','commencer'] },
+      { id:'documents',   triggers:['document','pièce','cni'] },
+      { id:'tarifs',      triggers:['prix','tarif'] },
+      { id:'duree',       triggers:['durée','combien de temps','rapide'] },
+      { id:'code',        triggers:['code','théorie','examen'] },
+    ],
+    responses: {
+      forfaits: 'Liste forfaits bot.catalogue avec contenu (code+heures) et prix.',
+      permis_b: 'Forfait B: 120-180K (code + 20h conduite). Délais examens.',
+      permis_a: 'Forfait moto si dispo. Différences A1/A2/A.',
+      inscription: 'Demande type permis, urgence, pré-requis. Propose RDV.',
+      documents: 'CNI + photocopie, 4 photos, certificat médical, justif domicile.',
+      tarifs: 'Code seul 30-50K, B complet 120-180K. Échelonné possible.',
+      duree: 'B classique 2-4 mois, code 1-2 mois, accéléré 2-3 semaines.',
+      code: 'Cours théoriques. Examen blanc obligatoire. Délai code 2-4 sem.',
+    },
+    rules: [
+      '✅ TOUJOURS lister documents requis dès le début',
+      '✅ Prévenir des délais administratifs',
+      '❌ Jamais garantir date d\'examen',
+      '❌ Jamais promettre réussite 100%',
+    ],
+    quick_replies: ['🚗 Forfaits','📝 S\'inscrire','💰 Tarifs','📋 Documents'],
+    follow_ups: {
+      forfaits: 'Quel permis vous intéresse — voiture, moto ?',
+      inscription: 'Vous voulez quel type de permis ?',
+    },
+  },
+ 
+  service: {
+    label: 'Artisan / Service pro',
+    intents: [
+      { id:'devis',        triggers:['devis','estimation','prix','coût'] },
+      { id:'intervention', triggers:['venir','intervenir','réparer','panne'] },
+      { id:'urgence',      triggers:['urgent','fuite','cassé','maintenant'] },
+      { id:'specialite',   triggers:['plomberie','électricité','menuiserie','peinture'] },
+      { id:'zone',         triggers:['zone','venir chez','dakar'] },
+      { id:'garantie',     triggers:['garantie','sav'] },
+      { id:'rdv_chantier', triggers:['rdv','visite','évaluer'] },
+    ],
+    responses: {
+      devis: 'Demande type travail, photos, dimensions, adresse. RDV gratuit. Délai 24-48h.',
+      intervention: 'Demande problème, urgence, adresse, photos. Estime délai.',
+      urgence: '🚨 Urgences: adresse + photo, dispo <2h, majoration possible.',
+      specialite: 'Confirme si traitée. Sinon recommande confrère honnêtement.',
+      zone: 'bot.zones_intervention. Au-delà: frais déplacement.',
+      garantie: 'Main d\'œuvre 1 an, garantie fabricant matériaux.',
+      rdv_chantier: 'Flux RDV: date, adresse, nature travaux.',
+    },
+    rules: [
+      '✅ Devis: photos + dimensions + adresse OBLIGATOIRES',
+      '✅ Urgences: délai d\'intervention réaliste',
+      '✅ Acompte 30-50% AVANT démarrage',
+      '❌ Jamais prix ferme sans visite si travaux complexes',
+    ],
+    quick_replies: ['📋 Devis','🚨 Urgence','📅 RDV chantier','🔧 Prestations'],
+    follow_ups: {
+      devis: 'Quel type de travail et où ?',
+      urgence: 'Décrivez la situation et votre adresse',
+    },
+  },
+ 
+  education: {
+    label: 'École / Formation',
+    intents: [
+      { id:'formations',     triggers:['formation','cours','programme'] },
+      { id:'inscription',    triggers:['inscrire','admission'] },
+      { id:'tarifs',         triggers:['prix','frais','scolarité','mensualité'] },
+      { id:'duree',          triggers:['durée','mois','année'] },
+      { id:'certifications', triggers:['diplôme','certificat','reconnu'] },
+      { id:'horaires_cours', triggers:['heure','cours','soir','week-end'] },
+      { id:'documents',      triggers:['document','bulletin'] },
+      { id:'debouches',      triggers:['débouché','emploi','métier','carrière'] },
+    ],
+    responses: {
+      formations: 'Liste formations avec durée, prix, certification, débouchés.',
+      inscription: 'Demande formation, niveau actuel. Liste documents + RDV info.',
+      tarifs: 'Prix par formation. Comptant vs échéancier mensuel.',
+      duree: 'Certificat 3-6 mois, licence 1-3 ans, formation pro 3-12 mois.',
+      certifications: 'Diplôme État, attestation interne, ou certif internationale.',
+      horaires_cours: 'Sessions jour, soir, week-end, à distance. Volume/semaine.',
+      documents: 'CNI + photocopie, 4 photos, diplôme précédent, justif domicile.',
+      debouches: '3-5 métiers visés. Si bot.taux_insertion: mentionner.',
+    },
+    rules: [
+      '✅ TOUJOURS donner prix + durée + certification',
+      '✅ Confirmer reconnaissance État pour transparence',
+      '✅ Modalités paiement échelonné (important localement)',
+      '❌ Jamais promettre emploi garanti',
+    ],
+    quick_replies: ['🎓 Formations','📝 S\'inscrire','💰 Tarifs','📅 Calendrier'],
+    follow_ups: {
+      formations: 'Quel domaine vous intéresse ?',
+      inscription: 'Quelle formation souhaitez-vous ?',
+    },
+  },
+ 
+  immobilier: {
+    label: 'Immobilier',
+    intents: [
+      { id:'biens',      triggers:['bien','maison','villa','appartement','studio','location','vente'] },
+      { id:'visite',     triggers:['visite','voir','rdv'] },
+      { id:'prix',       triggers:['prix','loyer'] },
+      { id:'zone',       triggers:['quartier','almadies','plateau','mermoz'] },
+      { id:'caution',    triggers:['caution','avance','garantie'] },
+      { id:'documents',  triggers:['document','fiche paie'] },
+      { id:'expatries',  triggers:['diaspora','étranger','france','usa'] },
+    ],
+    responses: {
+      biens: 'Demande location/achat, type, quartier, budget. Liste correspondants.',
+      visite: 'Créneaux dispos. Nom + tél + bien. Rappel veille.',
+      prix: 'Prix exact si bien identifié. Sinon fourchette par quartier.',
+      zone: 'Confirme bien dispo dans quartier. Alternatives proches.',
+      caution: '2-3 mois caution + 1 mois avance. Restituée si état lieux OK.',
+      documents: 'CNI + 3 fiches paie + attestation + garant si revenus <3x loyer.',
+      expatries: 'Service diaspora: gestion à distance, vidéo, signature numérique.',
+    },
+    rules: [
+      '✅ TOUJOURS confirmer bien encore dispo AVANT visite',
+      '✅ Transparence sur frais agence + caution + avance',
+      '✅ Diaspora: options paiement adaptées',
+      '❌ Jamais demander acompte sans contrat signé',
+    ],
+    quick_replies: ['🏠 Biens','📅 Visiter','💰 Tarifs','📍 Quartiers'],
+    follow_ups: {
+      biens: 'Location ou achat ? Quel type et quel quartier ?',
+      visite: 'Pour quel bien et quel jour ?',
+    },
+  },
+ 
+};
+ 
+// ─── Helpers ───────────────────────────────────────────────
+ 
+function getSectorIntelligenceBlock(niche, bot) {
+  const s = SECTOR_INTELLIGENCE[niche];
+  if (!s) return '';
+  const intentsList = s.intents.map(i => '- ' + i.id + ': [' + i.triggers.slice(0,4).join(', ') + '…]').join('\n');
+  const responsesList = Object.entries(s.responses).map(([k,v]) => '[' + k + '] → ' + v).join('\n');
+  const rulesList = s.rules.join('\n');
+  const followUpList = Object.entries(s.follow_ups || {}).map(([k,v]) => '- Si "' + k + '": "' + v + '"').join('\n');
+ 
+  return '\n\n═══════════════════════════════════════════════\n'
+    + '🧠 INTELLIGENCE SECTORIELLE — ' + s.label.toUpperCase() + '\n'
+    + '═══════════════════════════════════════════════\n\n'
+    + 'QUESTIONS TYPIQUES dans ce secteur:\n' + intentsList + '\n\n'
+    + 'COMMENT RÉPONDRE:\n' + responsesList + '\n\n'
+    + 'RÈGLES MÉTIER CRITIQUES (à respecter ABSOLUMENT):\n' + rulesList + '\n\n'
+    + 'QUESTIONS DE RELANCE:\n' + followUpList + '\n\n'
+    + '⚠️ Croise toujours avec les données du bot (catalogue, horaires, adresse).\n'
+    + '═══════════════════════════════════════════════\n';
+}
+ 
+function getSectorQuickReplies(niche) {
+  return (SECTOR_INTELLIGENCE[niche] || {}).quick_replies || null;
+}
+ 
+function detectSectorIntent(message, niche) {
+  const s = SECTOR_INTELLIGENCE[niche];
+  if (!s || !message) return null;
+  const lower = message.toLowerCase();
+  for (const intent of s.intents) {
+    for (const trigger of intent.triggers) {
+      if (lower.includes(trigger.toLowerCase())) {
+        return { intent: intent.id, sector: niche, matched: trigger };
+      }
+    }
+  }
+  return null;
+}
+ 
+// ─── OVERRIDE des fonctions existantes (au runtime, pas besoin de toucher au code original) ───
+ 
+// Override makePromptSmart : ajoute l'intelligence sectorielle au prompt
+if (typeof makePromptSmart === 'function') {
+  const __origMakePromptSmart = makePromptSmart;
+  makePromptSmart = function(bot, sid) {
+    const original = __origMakePromptSmart(bot, sid);
+    const sectorBlock = getSectorIntelligenceBlock(bot && bot.niche, bot);
+    return original + sectorBlock;
+  };
+  console.log('✅ makePromptSmart enrichi avec Sector Intelligence');
+}
+ 
+// Override getQR : priorise les quick replies sectoriels intelligents
+if (typeof getQR === 'function') {
+  const __origGetQR = getQR;
+  getQR = function(n) {
+    const dynamic = getSectorQuickReplies(n);
+    if (dynamic) return dynamic;
+    return __origGetQR(n);
+  };
+  console.log('✅ getQR enrichi avec quick replies sectoriels');
+}
+ 
+console.log('🧠 Sector Intelligence chargée — ' + Object.keys(SECTOR_INTELLIGENCE).length + ' secteurs couverts');
 
 
 const PORT = process.env.PORT || 8080;
