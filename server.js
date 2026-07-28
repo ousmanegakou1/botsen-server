@@ -71,6 +71,73 @@ button,a,.tab,.ba{ touch-action:manipulation; }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   IDENTITE KOMUNITY — repeinte du dashboard SamaBot
+
+   POURQUOI PASSER PAR CETTE FEUILLE
+   La palette d'origine (vert #00c875 sur vert-noir #0a1a0f) est
+   ecrite en dur dans pres de cinq cents attributs style= a travers
+   le fichier. Les reecrire un par un serait long et surtout risque :
+   une faute de frappe dans une chaine de gabarit ne se voit qu'une
+   fois la page servie. Cette feuille est chargee en dernier, donc
+   elle a le dernier mot, et elle est reversible en supprimant le
+   bloc.
+
+   CE QUI N'EST PAS TOUCHE, VOLONTAIREMENT
+   bot.couleur — la couleur choisie par le client pour SON bot. Elle
+   pilote .btn-p et .tab-btn.active. La repeindre reviendrait a
+   effacer la marque du client sous pretexte d'installer la notre.
+   ══════════════════════════════════════════════════════════════ */
+
+:root{
+  --k-tx1:#202124; --k-tx2:#5F6368; --k-tx3:#80868B;
+  --k-line:#E8EAED; --k-line2:#DADCE0;
+  --k-bg:#FFFFFF; --k-sunken:#F8F9FA;
+  --k-ac:#E8912B; --k-ac-tx:#95580C; --k-ac-tint:#FDF3E7;
+}
+
+/* Barre du haut : le vert-noir devient le gris tres sombre du Hub */
+.topbar{ background:var(--k-tx1) !important; border-bottom:1px solid rgba(255,255,255,.06); }
+
+/* Signature de marque */
+.logo{ font-family:Inter,sans-serif !important; font-weight:600 !important;
+       font-size:15px !important; letter-spacing:-.01em; color:#fff !important;
+       display:inline-flex; align-items:baseline; gap:7px; }
+.logo span{ color:var(--k-ac) !important; }
+.logo-by{ font-style:normal; font-size:11px; font-weight:400;
+          color:rgba(255,255,255,.55); letter-spacing:0; }
+@media(max-width:640px){ .logo-by{ display:none } }
+
+/* Cartes et indicateurs : bordures neutres, plus de teinte verte */
+.stat,.card{ border-color:var(--k-line) !important; background:var(--k-bg) !important; }
+.stat-val{ font-family:Inter,sans-serif !important; font-weight:600 !important;
+           letter-spacing:-.02em; color:var(--k-tx1) !important; }
+.stat-lbl{ color:var(--k-tx2) !important; }
+.stat-sub{ color:var(--k-tx3) !important; font-weight:500 !important; }
+.card-title{ color:var(--k-tx1) !important; font-weight:600 !important; }
+
+/* Onglets au repos : gris neutre. L'onglet actif garde la couleur du bot. */
+.tab-btn{ border-color:var(--k-line) !important; color:var(--k-tx2) !important; }
+.tab-btn:hover{ background:var(--k-hover,#F1F3F4) !important; }
+
+/* Fonds et bordures structurels, y compris ceux ecrits en attribut */
+body{ background:var(--k-sunken) !important; }
+[style*="#f0f4f1"]{ background-color:var(--k-sunken) !important; }
+[style*="border:1px solid #d1e5d8"],
+[style*="border:1.5px solid #d1e5d8"]{ border-color:var(--k-line) !important; }
+[style*="color:#5a7060"]{ color:var(--k-tx2) !important; }
+[style*="color:#9ab0a0"]{ color:var(--k-tx3) !important; }
+[style*="color:#0a1a0f"]{ color:var(--k-tx1) !important; }
+
+/* Le bloc « Nouveau produit / Modifier le produit » */
+#cat-add-form{ background:var(--k-sunken) !important; border:1px solid var(--k-line); }
+#cat-form-titre{ color:var(--k-tx1) !important; }
+
+/* Le vert vif reste autorise pour les montants encaisses : c'est une
+   information, pas une decoration. On l'aligne seulement sur le vert
+   du Hub, plus sobre que le vert d'origine. */
+[style*="color:#00c875"]:not([style*="background"]){ color:#1E8E3E !important; }
 `;
 
 app.get('/premium.css', (req, res) => {
@@ -95,13 +162,13 @@ const CONFIG = {
   SUPABASE_URL:         process.env.SUPABASE_URL || 'https://qymbvpevaobeadslmjah.supabase.co',
   SUPABASE_ANON_KEY:    process.env.SUPABASE_ANON_KEY,
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
-  META_VERIFY_TOKEN:    process.env.META_VERIFY_TOKEN || 'samabot_verify_2025',
+  META_VERIFY_TOKEN:    process.env.META_VERIFY_TOKEN,
   META_ACCESS_TOKEN:    process.env.META_ACCESS_TOKEN,
   BASE_URL:             process.env.BASE_URL || 'https://api.samabot.app',
   RESEND_API_KEY:       process.env.RESEND_API_KEY,
   WASENDER_API_KEY:     process.env.WASENDER_API_KEY,
   WASENDER_SESSION_ID:  process.env.WASENDER_SESSION_ID,
-  JWT_SECRET:           process.env.JWT_SECRET || 'samabot_jwt_secret_2025',
+  JWT_SECRET:           process.env.JWT_SECRET,
   GOOGLE_CLIENT_ID:     process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   // Stripe pour facturation SaaS
@@ -157,6 +224,30 @@ const PLANS = {
 };
 
 const appPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#f0f4f1;min-height:100vh}\nnav{background:#0a1a0f;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff}\n.logo b{color:#00c875}\n.wrap{max-width:960px;margin:0 auto;padding:32px 20px}\nh1{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#0a1a0f;margin-bottom:6px}\n.sub{font-size:14px;color:#5a7060;margin-bottom:28px}\n.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}\n.card{background:#fff;border-radius:14px;padding:20px;border:1px solid #e5e7eb;transition:all .2s}\n.card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}\n.ch{display:flex;align-items:center;gap:10px;margin-bottom:14px}\n.av{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}\n.cn{font-size:15px;font-weight:700;color:#0a1a0f}\n.cni{font-size:12px;color:#5a7060;text-transform:capitalize}\n.cb{display:flex;gap:6px}\n.ba{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;text-align:center;border:none;cursor:pointer;display:block;transition:opacity .15s}\n.ba:hover{opacity:.85}\n.bg{background:#00c875;color:#fff}\n.bo{background:#f0f4f1;color:#0a1a0f}\n.add{border:2px dashed #d1e5d8;border-radius:14px;padding:24px;text-align:center;cursor:pointer;background:#f9fdf9;transition:all .2s}\n.add:hover{border-color:#00c875;background:rgba(0,200,117,.04)}\n.empty{text-align:center;padding:40px;color:#9ab0a0;font-size:14px}\n.deco{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 16px;color:rgba(255,255,255,.8);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}\n.deco:hover{background:rgba(255,255,255,.15);color:#fff}\n.pill{background:rgba(0,200,117,.12);color:#00a862;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700}\n</style>\n<link rel='stylesheet' href='/premium.css'></head>\n<body>\n<nav>\n  <div class=\"logo\">Sama<b>Bot</b></div>\n  <button class=\"deco\" id=\"deco\">Deconnexion</button>\n</nav>\n<div class=\"wrap\">\n  <h1>Mes bots</h1>\n  <div class=\"sub\" id=\"info\">Chargement...</div>\n  <div class=\"grid\" id=\"grid\"><div class=\"empty\">Chargement...</div></div>\n</div>\n<script>\n// 1. Logout\ndocument.getElementById('deco').onclick = function() {\n  localStorage.removeItem('sb-token');\n  localStorage.removeItem('sb-user');\n  fetch('/auth/logout', { method: 'POST' }).finally(function() {\n    window.location.replace('/login');\n  });\n};\n\n// 2. Recupere token depuis URL (Google OAuth / reset-password)\n(function() {\n  var hrf = window.location.href;\n  var tm = hrf.match(/[?&]token=([^&]+)/);\n  if (tm && tm[1]) {\n    localStorage.setItem('sb-token', tm[1]);\n    var um = hrf.match(/[?&]user=([^&]+)/);\n    if (um && um[1]) {\n      try { localStorage.setItem('sb-user', decodeURIComponent(um[1])); } catch(e) {}\n    }\n    history.replaceState({}, '', '/app');\n  }\n})();\n\n// 3. Verifie token via API avant d'afficher\nvar tk = localStorage.getItem('sb-token');\nif (!tk) {\n  window.location.replace('/login');\n} else {\n  // Valide le token cote serveur\n  fetch('/auth/test', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) { return r.json(); })\n    .then(function(d) {\n      if (!d.valid) {\n        localStorage.removeItem('sb-token');\n        localStorage.removeItem('sb-user');\n        window.location.replace('/login');\n        return;\n      }\n      // Token valide - charge les bots\n      loadBots();\n    })\n    .catch(function() {\n      loadBots(); // En cas d'erreur reseau, essaie quand meme\n    });\n}\n\nfunction loadBots() {\n  var grid = document.getElementById('grid');\n  var info = document.getElementById('info');\n  var tk = localStorage.getItem('sb-token');\n\n  fetch('/auth/my-bots', { headers: { 'Authorization': 'Bearer ' + tk } })\n    .then(function(r) {\n      if (r.status === 401) {\n        localStorage.removeItem('sb-token');\n        window.location.replace('/login');\n        return null;\n      }\n      return r.json();\n    })\n    .then(function(bots) {\n      if (!bots) return;\n      if (!Array.isArray(bots)) {\n        info.textContent = bots.error || 'Erreur serveur';\n        grid.innerHTML = '<div class=\"empty\">' + (bots.error || 'Erreur') + '</div>';\n        return;\n      }\n      var userRaw = localStorage.getItem('sb-user') || '{}';\n      var user = {};\n      try { user = JSON.parse(userRaw); } catch(e) {}\n      info.innerHTML = '<span class=\"pill\">Plan ' + (user.plan || 'free') + '</span> &nbsp;' + bots.length + ' bot' + (bots.length !== 1 ? 's' : '');\n      var h = '';\n      for (var i = 0; i < bots.length; i++) {\n        var b = bots[i];\n        var av = b.logo_url\n          ? '<img src=\"' + b.logo_url + '\" style=\"width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0\" alt=\"\" />'\n          : '<div class=\"av\" style=\"background:' + (b.couleur || '#00c875') + '\">' + (b.emoji || '?') + '</div>';\n        h += '<div class=\"card\">';\n        h += '<div class=\"ch\">' + av + '<div><div class=\"cn\">' + b.nom + '</div><div class=\"cni\">' + b.niche + '</div></div></div>';\n        h += '<div class=\"cb\">';\n        h += '<a class=\"ba bo\" href=\"/chat/' + b.id + '\" target=\"_blank\">Chat</a>';\n        h += '<a class=\"ba bg\" href=\"/dashboard/' + b.id + '\">Dashboard</a>';\n        h += '</div></div>';\n      }\n      if (!bots.length) {\n        h = '<div class=\"empty\">Pas encore de bot. Creez votre premier bot!</div>';\n      }\n      h += '<div class=\"add\" id=\"addbtn\"><div style=\"font-size:28px;margin-bottom:6px\">+</div><div style=\"font-size:14px;font-weight:600;color:#5a7060\">Nouveau bot</div></div>';\n      grid.innerHTML = h;\n      document.getElementById('addbtn').onclick = function() { window.location.href = '/setup'; };\n    })\n    .catch(function(e) {\n      info.textContent = 'Erreur reseau';\n      grid.innerHTML = '<div class=\"empty\">Impossible de charger. Verifiez votre connexion.</div>';\n    });\n}\n</script>\n</body>\n</html>";
+
+// Un secret absent ne doit pas se remplacer par une valeur devinable.
+// Avec 'samabot_jwt_secret_2025' en repli, n'importe qui pouvant lire ce
+// fichier — ou devinant le motif — forgeait un jeton valide pour
+// n'importe quel compte. Le serveur refuse desormais de demarrer plutot
+// que de tourner en paraissant securise.
+for (const [nom, valeur] of [
+  ['JWT_SECRET',   process.env.JWT_SECRET],
+  ['ADMIN_SECRET', process.env.ADMIN_SECRET],
+]) {
+  if (!valeur || String(valeur).length < 24) {
+    console.error(`ARRET : ${nom} absent ou trop court (24 caracteres minimum).`);
+    console.error('Posez-le dans les variables d environnement avant de demarrer.');
+    process.exit(1);
+  }
+}
+
+// Echappement unique, applique a toute donnee venant de la base ou du
+// visiteur avant insertion dans du HTML. Le fichier le faisait deja pour
+// les avis mais l'oubliait pour les noms, telephones, adresses et
+// messages : un visiteur anonyme pouvait donc ecrire du code qui
+// s'executait chez le commercant, puis chez l'administrateur.
+const echapHtml = (v) => String(v ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const STORAGE_URL = `${CONFIG.SUPABASE_URL}/storage/v1`;
 const BUCKET = 'samabot-media';
@@ -751,7 +842,7 @@ function buildActions(intents, bot, orderTotal=0, orderRef='') {
     }
     if (bot.om_number) {
       const n = bot.om_number.replace(/[\s+]/g,'');
-      actions.push({ type:'om', label:`🟠 Orange Money`, url:`tel:#144*${n}*${orderTotal}#` });
+      actions.push({ type:'om', label:`🟠 Orange Money`, url:`tel:%23144*${n}*${orderTotal}%23` });
     }
     actions.push({ type:'cash', label:'💵 Payer à la livraison', url:null });
   }
@@ -1855,6 +1946,13 @@ async function notifyClientStatut(commandeId, statut) {
     if (!bot) return;
 
     const messages = {
+      // Le menu du dashboard propose sept statuts, cette table n'en
+      // couvrait que cinq. Basculer une commande sur « Payée » — le
+      // geste le plus courant apres un Wave — sortait de la fonction en
+      // silence : le patron croyait avoir prevenu, le client ne recevait
+      // rien. Meme forme que les autres entrees : emoji, titre, msg.
+      paid:      { emoji:'💰', titre:'Paiement reçu', msg:`Nous avons bien reçu le paiement de votre commande ${cmd.numero}. Merci !` },
+      pending:   { emoji:'📝', titre:'Commande enregistrée', msg:`Votre commande ${cmd.numero} est enregistrée. Nous revenons vers vous très vite.` },
       preparing: { emoji:'👨‍🍳', titre:'En préparation', msg:`Votre commande ${cmd.numero} est en cours de préparation!` },
       ready:     { emoji:'✅', titre:'Prête!', msg:`Votre commande ${cmd.numero} est prête! On prépare la livraison.` },
       delivering:{ emoji:'🛵', titre:'En route!', msg:`Votre commande ${cmd.numero} est en route vers vous! Restez disponible.` },
@@ -3324,7 +3422,7 @@ async function sendConfirmationClient(botId, commande, clientEmail) {
           <div style="font-size:14px;font-weight:700;color:#0a1a0f">En préparation</div>
         </div>
       </div>
-      ${commande.adresse_livraison?`<div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-bottom:16px"><div style="font-size:11px;color:#9ab0a0;margin-bottom:4px">📍 Livraison</div><div style="font-size:14px;font-weight:600;color:#0a1a0f">${commande.adresse_livraison}</div></div>`:''}
+      ${commande.adresse_livraison?`<div style="background:#e8f5e9;border-radius:8px;padding:12px;margin-bottom:16px"><div style="font-size:11px;color:#9ab0a0;margin-bottom:4px">📍 Livraison</div><div style="font-size:14px;font-weight:600;color:#0a1a0f">${echapHtml(commande.adresse_livraison)}</div></div>`:''}
       <div style="text-align:center;padding:16px;background:#f9f9f9;border-radius:8px">
         <div style="font-size:13px;color:#5a7060">Merci pour votre commande!</div>
         <div style="font-size:12px;color:#9ab0a0;margin-top:4px">Nous vous contacterons dès que votre commande sera prête.</div>
@@ -5502,17 +5600,20 @@ app.get('/dashboard/:botId', async (req, res) => {
     // Langue depuis query param ou cookie ou défaut fr
     const lang = ['fr','en','pt'].includes(req.query.lang) ? req.query.lang : 'fr';
 
-    const [convs, msgs, commandes, allAvis, audioMsgs] = await Promise.all([
+    const [convs, msgs, commandes, toutesCmds, allAvis, audioMsgs] = await Promise.all([
       db.select('conversations', `?bot_id=eq.${req.params.botId}&order=last_message_at.desc&limit=30`),
       db.select('messages', `?bot_id=eq.${req.params.botId}&role=eq.user&order=created_at.desc&limit=50`),
       db.select('commandes', `?bot_id=eq.${req.params.botId}&order=created_at.desc&limit=30`),
-      db.select('avis', `?bot_id=eq.${req.params.botId}&order=created_at.desc&limit=20`),
+      // Requete separee et allegee pour les totaux : la liste reste
+      // limitee a 30 cartes, les chiffres portent sur tout l'historique.
+      db.select('commandes', `?bot_id=eq.${req.params.botId}&select=total,statut`),
+      db.select('avis', `?bot_id=eq.${req.params.botId}&visible=eq.true&order=created_at.desc&limit=20`),
       db.select('audio_messages', `?bot_id=eq.${req.params.botId}&order=created_at.desc&limit=10`)
     ]);
 
     const now = Date.now();
     const msgsToday = msgs?.filter(m=>new Date(m.created_at)>new Date(now-86400000)).length||0;
-    const cmdsPending = commandes?.filter(c=>c.statut==='pending').length||0;
+    const cmdsPending = toutesCmds?.filter(c=>c.statut==='pending').length||0;
     // Une commande encaissee a la livraison porte le statut 'delivered'
     // et ne passe JAMAIS par 'paid'. Ne compter que 'paid' revenait a
     // ecarter le mode de paiement dominant au Senegal : le patron voyait
@@ -5520,9 +5621,9 @@ app.get('/dashboard/:botId', async (req, res) => {
     // les deux (analytics, exports) — seul cet ecran divergeait.
     const STATUTS_ENCAISSES = ['paid', 'delivered'];
     const STATUTS_EN_COURS  = ['pending', 'preparing', 'ready', 'delivering'];
-    const revenuTotal = commandes?.filter(c=>STATUTS_ENCAISSES.includes(c.statut))
+    const revenuTotal = toutesCmds?.filter(c=>STATUTS_ENCAISSES.includes(c.statut))
       .reduce((s,c)=>s+(Number(c.total)||0),0)||0;
-    const revenuEnCours = commandes?.filter(c=>STATUTS_EN_COURS.includes(c.statut))
+    const revenuEnCours = toutesCmds?.filter(c=>STATUTS_EN_COURS.includes(c.statut))
       .reduce((s,c)=>s+(Number(c.total)||0),0)||0;
     const avgNote = allAvis?.length ? (allAvis.reduce((s,a)=>s+a.note,0)/allAvis.length).toFixed(1) : '—';
     const statusColors = {pending:'#f59e0b',paid:'#10b981',preparing:'#3b82f6',ready:'#8b5cf6',delivered:'#6b7280',cancelled:'#ef4444',delivering:'#f59e0b'};
@@ -5687,7 +5788,8 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
 <link rel='stylesheet' href='/premium.css'></head>
 <body>
 <div class="topbar">
-  <div class="logo">Sama<span>Bot</span></div>
+  <a class="logo" href="https://komunity.africa/" target="_blank" rel="noopener"
+     style="text-decoration:none">Sama<span>Bot</span><em class="logo-by">un produit Komunity SN</em></a>
   <div class="bot-badge">
     ${bot.logo_url?`<img class="bot-logo-sm" src="${bot.logo_url}" alt="${bot.nom}"/>`:`<div class="bot-ava-sm">${bot.emoji}</div>`}
     <span class="bot-nm">${bot.nom}</span>
@@ -5717,7 +5819,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
   <div class="stats">
     <div class="stat"><div class="stat-val">${msgsToday}</div><div class="stat-lbl">${t(lang,'msgs_today')}</div></div>
     <div class="stat"><div class="stat-val" id="rdv-today-count">—</div><div class="stat-lbl">${t(lang,'rdv_today')}</div><div class="stat-sub">📅</div></div>
-    <div class="stat"><div class="stat-val">${commandes?.length||0}</div><div class="stat-lbl">${t(lang,'orders')}</div><div class="stat-sub">⏳ ${cmdsPending}</div></div>
+    <div class="stat"><div class="stat-val">${toutesCmds?.length||0}</div><div class="stat-lbl">${t(lang,'orders')}</div><div class="stat-sub">⏳ ${cmdsPending}</div></div>
     <div class="stat"><div class="stat-val">${(revenuTotal/1000).toFixed(0)}K</div><div class="stat-lbl">${t(lang,'revenue')}${revenuEnCours?` <span style="color:#9ab0a0">· ${(revenuEnCours/1000).toFixed(0)}K en cours</span>`:''}</div></div>
     <div class="stat"><div class="stat-val">${avgNote}${avgNote!=='—'?'⭐':''}</div><div class="stat-lbl">${t(lang,'avg_rating')}</div><div class="stat-sub">${allAvis?.length||0}</div></div>
   </div>
@@ -5832,7 +5934,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
               <span class="cmd-info-icon">👤</span>
               <div>
                 <div class="cmd-info-label">Client</div>
-                <div class="cmd-info-val">${c.client_nom}</div>
+                <div class="cmd-info-val">${echapHtml(c.client_nom)}</div>
               </div>
             </div>` : ''}
 
@@ -5842,7 +5944,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
               <div>
                 <div class="cmd-info-label">Téléphone</div>
                 <div class="cmd-info-val">
-                  <a href="tel:${c.client_tel}" style="color:#00c875;font-weight:700;text-decoration:none">${c.client_tel}</a>
+                  <a href="tel:${encodeURIComponent(c.client_tel||"")}" style="color:#00c875;font-weight:700;text-decoration:none">${echapHtml(c.client_tel)}</a>
                   &nbsp;
                   <a href="https://wa.me/${c.client_tel.replace(/[\s+\-()]/g,'')}" target="_blank" style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;text-decoration:none">💬 WhatsApp</a>
                 </div>
@@ -5854,7 +5956,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
               <span class="cmd-info-icon">📍</span>
               <div>
                 <div class="cmd-info-label">Adresse livraison</div>
-                <div class="cmd-info-val">${c.adresse_livraison}
+                <div class="cmd-info-val">${echapHtml(c.adresse_livraison)}
                   ${c.adresse_livraison.includes('maps.google') || c.adresse_livraison.includes('GPS:') ? 
                     `<br><a href="${c.adresse_livraison.match(/https?:\/\/[^\s)]+/)?.[0]||'#'}" target="_blank" style="color:#00c875;font-size:12px;font-weight:600">🗺️ Voir sur Maps →</a>` : ''}
                 </div>
@@ -5866,7 +5968,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
               <span class="cmd-info-icon">💳</span>
               <div>
                 <div class="cmd-info-label">Paiement</div>
-                <div class="cmd-info-val">${c.methode_paiement}</div>
+                <div class="cmd-info-val">${echapHtml(c.methode_paiement)}</div>
               </div>
             </div>` : ''}
 
@@ -5884,7 +5986,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
             <select onchange="updateStatut('${c.id}',this.value)" style="flex:1;min-width:140px;padding:8px 10px;border-radius:8px;border:1.5px solid #d1e5d8;font-size:13px;font-weight:600;font-family:inherit;color:#0a1a0f">
               ${Object.entries(statusLabels).map(([k,v])=>`<option value="${k}"${c.statut===k?' selected':''}>${v}</option>`).join('')}
             </select>
-            ${c.client_tel ? `<a href="tel:${c.client_tel}" style="background:#0a1a0f;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none">📞 Appeler</a>` : ''}
+            ${c.client_tel ? `<a href="tel:${encodeURIComponent(c.client_tel||"")}" style="background:#0a1a0f;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none">📞 Appeler</a>` : ''}
           </div>
         </div>
       `).join('') : `<div class="empty">Aucune commande encore. Partagez votre lien de chat !</div>`}
@@ -6010,7 +6112,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
       ${msgs?.length?msgs.slice(0,20).map(m=>`
         <div class="row">
           <div>
-            <div class="msg-text">${m.content.startsWith('🎤')?'<span style="background:#ede9fe;color:#5b21b6;padding:2px 6px;border-radius:10px;font-size:11px;margin-right:4px">🎤 Vocal</span>':''} ${m.content.replace('🎤 ','')}</div>
+            <div class="msg-text">${m.content.startsWith('🎤')?'<span style="background:#ede9fe;color:#5b21b6;padding:2px 6px;border-radius:10px;font-size:11px;margin-right:4px">🎤 Vocal</span>':''} ${echapHtml(m.content.replace('🎤 ',''))}</div>
             <div class="msg-time">${new Date(m.created_at).toLocaleString('fr-FR')}</div>
           </div>
         </div>
@@ -7434,7 +7536,7 @@ function renderActions(actions){
   actions.forEach(function(a){
     if(a.type==='rating'){showStars();return;}
     if(a.type==='share'){var b=document.createElement('button');b.className='sb-act sb-share';b.textContent=a.label;b.onclick=function(){if(navigator.share)navigator.share({title:botInfo?.nom,url:base+'/chat/'+botId});else{navigator.clipboard.writeText(base+'/chat/'+botId);alert('Lien copié!');}};el.appendChild(b);return;}
-    if(a.type==='cash'){var b=document.createElement('button');b.className='sb-act sb-cash';b.textContent=a.label;b.onclick=function(){addBot('✅ Paiement à la livraison noté!');el.innerHTML='';};el.appendChild(b);return;}
+    if(a.type==='cash'){var b=document.createElement('button');b.className='sb-act sb-cash';b.textContent=a.label;b.onclick=function(){el.innerHTML='';window.sbSend('Je paie à la livraison');};el.appendChild(b);return;}
     if(!a.url&&a.type==='hours'){var s=document.createElement('span');s.className='sb-act sb-hours';s.textContent=a.label;el.appendChild(s);return;}
     if(a.url){var l=document.createElement('a');l.className='sb-act sb-'+a.type;l.textContent=a.label;l.href=a.url;l.target='_blank';l.rel='noopener';el.appendChild(l);}
   });
@@ -7473,7 +7575,7 @@ function renderQR(rs){var qr=document.getElementById('sb-qr');qr.innerHTML='';rs
 // ============================================
 // MICROPHONE — Enregistrement vocal
 // ============================================
-async function toggleMic(){
+window.toggleMic=async function(){
   if(!isRecording){await startRec();}
   else{stopRec();}
 }
@@ -7562,7 +7664,9 @@ window.sbSend=function(t){
     if(data.actions?.length)renderActions(data.actions);
     if(data.catalogue?.length)renderCat(data.catalogue);
   })
-  .catch(function(){var t=document.getElementById('sb-ty');if(t)t.remove();addBot('Désolé, erreur. Réessayez.');});
+  .catch(function(){var t=document.getElementById('sb-ty');if(t)t.remove();
+    var i2=document.getElementById('sb-inp'); if(i2&&!i2.value) i2.value=msg;
+    addBot("Message non envoyé — vérifiez votre connexion. Votre texte est conservé, appuyez sur envoyer.");});
 };
 
 setTimeout(function(){if(!open){btn.style.transform='scale(1.15)';setTimeout(()=>btn.style.transform='',350);}},5000);
@@ -8034,7 +8138,7 @@ function renderActions(actions){
     }
     if(a.type==='rating'){showRating();return;}
     if(a.type==='share'){var b=document.createElement('button');b.className='act act-share';b.textContent=a.label;b.onclick=function(){if(navigator.share)navigator.share({title:"${bot.nom}",url:window.location.href});else{navigator.clipboard.writeText(window.location.href);alert('Lien copié');}};el.appendChild(b);return;}
-    if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){addMsg('Paiement à la livraison noté. Votre commande est confirmée.',false);el.innerHTML='';};el.appendChild(b);return;}
+    if(a.type==='cash'){var b=document.createElement('button');b.className='act act-cash';b.textContent=a.label;b.onclick=function(){el.innerHTML='';send('Je paie à la livraison');};el.appendChild(b);return;}
     if(!a.url&&a.type==='hours'){var s=document.createElement('span');s.className='act act-hours';s.textContent=a.label;el.appendChild(s);return;}
     if(a.url){var l=document.createElement('a');l.className='act act-'+a.type;l.textContent=a.label;l.href=a.url;l.target='_blank';l.rel='noopener';el.appendChild(l);}
   });
@@ -8148,7 +8252,12 @@ function sendManualAddress(){
     addMsg(data.reply||'Adresse notée!',false);
     if(data.actions?.length)renderActions(data.actions);
   })
-  .catch(()=>{var ty=document.getElementById('typing');if(ty)ty.remove();});
+  .catch(()=>{
+    var ty=document.getElementById('typing');if(ty)ty.remove();
+    addMsg("Votre adresse n'a pas pu être envoyée. Réessayez.",false);
+    openGeoModal(); showManualInput();
+    var ma=document.getElementById('manual-addr'); if(ma) ma.value=addr;
+  });
 }
 
 function requestGeo(){
@@ -8157,7 +8266,7 @@ function requestGeo(){
 
   if(!navigator.geolocation){
     content.innerHTML='<div class="geo-loading">GPS non disponible sur votre appareil.</div>';
-    setTimeout(()=>{closeGeoModal();showManualInput();},2000);
+    setTimeout(()=>{showManualInput();},2000);
     return;
   }
 
@@ -8434,7 +8543,9 @@ function send(t){
       showOrderConfirmedAnimation();
     }
   })
-  .catch(()=>{var ty=document.getElementById('typing');if(ty)ty.remove();addMsg('Désolé, erreur. Réessayez.',false);});
+  .catch(()=>{var ty=document.getElementById('typing');if(ty)ty.remove();
+    var i2=document.getElementById('inp'); if(i2&&!i2.value) i2.value=msg;
+    addMsg("Message non envoyé — vérifiez votre connexion. Votre texte est conservé, appuyez sur envoyer.",false);});
 }
 
 // Animation de confirmation de commande (checkmark vert qui apparaît)
@@ -8512,7 +8623,7 @@ function renderInitialSuggestions(){
 // ============================================
 // ADMIN DASHBOARD — Interface complète
 // ============================================
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'samabot_admin_2025';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 const adminPageHtml = "<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SamaBot Admin</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:'DM Sans',sans-serif;background:#0a0a0a;color:#fff;min-height:100vh}\n.nav{background:#111;border-bottom:1px solid #222;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}\n.logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}.logo span{color:#00c875}\n.badge{background:#00c875;color:#000;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800;margin-left:8px}\n.wrap{max-width:1200px;margin:0 auto;padding:28px 20px}\n.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}\n.kpi{background:#111;border:1px solid #222;border-radius:12px;padding:20px}\n.kpi-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#00c875;line-height:1}\n.kpi-lbl{font-size:12px;color:#666;margin-top:6px}\n.tabs{display:flex;gap:0;border-bottom:1px solid #222;margin-bottom:20px}\n.tab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}\n.tab.active{color:#00c875;border-bottom-color:#00c875}\n.tc{display:none}.tc.active{display:block}\n.table{width:100%;border-collapse:collapse}\n.table th{background:#111;border:1px solid #222;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#666;text-align:left;font-weight:600}\n.table td{border:1px solid #1a1a1a;padding:10px 12px;font-size:13px;color:#ccc;vertical-align:top}\n.table tr:hover td{background:#111}\n.pill{border-radius:20px;padding:2px 8px;font-size:10px;font-weight:800;display:inline-block}\n.p-free{background:#222;color:#666}\n.p-starter{background:#1a2e1a;color:#00c875}\n.p-pro{background:#1a1a2e;color:#6366f1}\n.p-business{background:#2e1a1a;color:#f59e0b}\n.search{background:#111;border:1px solid #333;border-radius:8px;padding:8px 14px;font-size:13px;color:#fff;font-family:inherit;outline:none;width:240px}\n.search:focus{border-color:#00c875}\n.fb{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}\n.ab{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:4px 10px;font-size:11px;color:#ccc;cursor:pointer;font-family:inherit}\n.ab:hover{border-color:#00c875;color:#00c875}\n.msg{background:#1a1a1a;border-radius:8px;padding:8px 10px;font-size:12px;color:#999;max-width:400px;line-height:1.4}\n</style>\n<link rel='stylesheet' href='/premium.css'></head>\n<body>\n<div class=\"nav\">\n  <div><span class=\"logo\">Sama<span>Bot</span></span><span class=\"badge\">ADMIN</span></div>\n  <div style=\"font-size:12px;color:#444\" id=\"ref\">Chargement...</div>\n</div>\n<div class=\"wrap\">\n  <div class=\"kpis\">\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-u\">-</div><div class=\"kpi-lbl\">Clients</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-b\">-</div><div class=\"kpi-lbl\">Bots actifs</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-m\">-</div><div class=\"kpi-lbl\">Msgs aujourd_hui</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-o\">-</div><div class=\"kpi-lbl\">Commandes</div></div>\n    <div class=\"kpi\"><div class=\"kpi-val\" id=\"k-r\">-</div><div class=\"kpi-lbl\">Revenus</div></div>\n  </div>\n  <div class=\"tabs\">\n    <div class=\"tab active\" onclick=\"st('clients',this)\">Clients</div>\n    <div class=\"tab\" onclick=\"st('bots',this)\">Bots</div>\n    <div class=\"tab\" onclick=\"st('cmds',this)\">Commandes</div>\n    <div class=\"tab\" onclick=\"st('msgs',this)\">Messages</div>\n  </div>\n  <div id=\"tc-clients\" class=\"tc active\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les clients</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cl',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cl\"><thead><tr><th>Client</th><th>Email</th><th>Plan</th><th>Bots</th><th>Inscrit le</th><th>Actions</th></tr></thead><tbody id=\"b-cl\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-bots\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Tous les bots</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-bo',this.value)\"/></div>\n    <table class=\"table\" id=\"t-bo\"><thead><tr><th>Bot</th><th>Niche</th><th>Owner</th><th>Msgs</th><th>Cmds</th><th>Cree le</th><th>Actions</th></tr></thead><tbody id=\"b-bo\"><tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-cmds\" class=\"tc\">\n    <div class=\"fb\"><b style=\"color:#fff\">Toutes les commandes</b><input class=\"search\" placeholder=\"Rechercher...\" oninput=\"ft('t-cm',this.value)\"/></div>\n    <table class=\"table\" id=\"t-cm\"><thead><tr><th>Ref</th><th>Bot</th><th>Client</th><th>Total</th><th>Statut</th><th>Date</th></tr></thead><tbody id=\"b-cm\"><tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Chargement...</td></tr></tbody></table>\n  </div>\n  <div id=\"tc-msgs\" class=\"tc\">\n    <b style=\"color:#fff;display:block;margin-bottom:14px\">Messages recents</b>\n    <div id=\"msgs-list\" style=\"display:flex;flex-direction:column;gap:8px\"></div>\n  </div>\n</div>\n<script>\nvar SEC = 'PLACEHOLDER_SECRET';\nvar D = {};\n\nfunction st(id,el){\n  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});\n  document.querySelectorAll('.tc').forEach(function(t){t.classList.remove('active');});\n  el.classList.add('active');\n  document.getElementById('tc-'+id).classList.add('active');\n}\n\nfunction ft(tid,q){\n  var rows=document.querySelectorAll('#'+tid+' tbody tr');\n  q=q.toLowerCase();\n  rows.forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});\n}\n\nfunction pp(plan){\n  var cls={'free':'p-free','starter':'p-starter','pro':'p-pro','business':'p-business'};\n  return '<span class=\"pill '+(cls[plan]||'p-free')+'\">'+(plan||'free').toUpperCase()+'</span>';\n}\n\nfunction ld(){\n  fetch('/admin/stats?secret='+SEC)\n    .then(function(r){\n      if(!r.ok){document.getElementById('ref').textContent='Erreur '+r.status;return null;}\n      return r.json();\n    })\n    .then(function(d){\n      if(!d||!d.stats)return;\n      D=d;\n      document.getElementById('k-u').textContent=d.stats.total_users;\n      document.getElementById('k-b').textContent=d.stats.total_bots;\n      document.getElementById('k-m').textContent=d.stats.messages_today;\n      document.getElementById('k-o').textContent=(d.commandes||[]).length;\n      document.getElementById('k-r').textContent=((d.stats.total_revenue||0)/1000).toFixed(0)+'K F';\n      document.getElementById('ref').textContent='Mis a jour: '+new Date().toLocaleTimeString('fr-FR');\n\n      // CLIENTS\n      var ch='';\n      (d.users||[]).forEach(function(u){\n        var ub=(d.bots||[]).filter(function(b){return b.user_id===u.id;});\n        ch+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+(u.nom||'-')+'</strong></td>'\n          +'<td>'+u.email+'</td>'\n          +'<td>'+pp(u.plan)+'</td>'\n          +'<td>'+ub.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(u.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td><button class=\"ab\" onclick=\"cp(this)\" data-uid=\"'+u.id+'\">Plan</button></td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cl').innerHTML=ch||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucun client</td></tr>';\n\n      // BOTS\n      var bh='';\n      (d.bots||[]).forEach(function(b){\n        var ow=(d.users||[]).find(function(u){return u.id===b.user_id;});\n        var bc=(d.commandes||[]).filter(function(c){return c.bot_id===b.id;});\n        bh+='<tr>'\n          +'<td><strong style=\"color:#fff\">'+b.nom+'</strong></td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+b.niche+'</span></td>'\n          +'<td style=\"color:#888\">'+(ow?ow.email:'-')+'</td>'\n          +'<td>'+(b.messages_count||0)+'</td>'\n          +'<td>'+bc.length+'</td>'\n          +'<td style=\"color:#444\">'+new Date(b.created_at).toLocaleDateString('fr-FR')+'</td>'\n          +'<td>'\n            +'<a href=\"/dashboard/'+b.id+'\" target=\"_blank\" class=\"ab\">Dashboard</a>'\n          +'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-bo').innerHTML=bh||'<tr><td colspan=\"7\" style=\"text-align:center;color:#444\">Aucun bot</td></tr>';\n\n      // COMMANDES\n      var oh='';\n      (d.commandes||[]).forEach(function(c){\n        var bo=(d.bots||[]).find(function(b){return b.id===c.bot_id;});\n        oh+='<tr>'\n          +'<td><strong style=\"color:#fff;font-size:12px\">'+(c.numero||c.id.substring(0,8))+'</strong></td>'\n          +'<td>'+(bo?bo.nom:c.bot_id)+'</td>'\n          +'<td>'+(c.client_nom||'-')+'</td>'\n          +'<td style=\"color:#00c875;font-weight:700\">'+(c.total||0).toLocaleString('fr-FR')+' F</td>'\n          +'<td><span style=\"background:#1a1a1a;padding:2px 8px;border-radius:20px;font-size:11px\">'+c.statut+'</span></td>'\n          +'<td style=\"color:#444;font-size:11px\">'+new Date(c.created_at).toLocaleString('fr-FR')+'</td>'\n          +'</tr>';\n      });\n      document.getElementById('b-cm').innerHTML=oh||'<tr><td colspan=\"6\" style=\"text-align:center;color:#444\">Aucune commande</td></tr>';\n\n      // MESSAGES\n      var mh='';\n      (d.recent_messages||[]).slice(0,20).forEach(function(m){\n        var bo=(d.bots||[]).find(function(b){return b.id===m.bot_id;});\n        mh+='<div style=\"display:flex;gap:10px;align-items:flex-start\">'\n          +'<div style=\"font-size:10px;color:#444;min-width:100px;padding-top:4px\">'+new Date(m.created_at).toLocaleTimeString('fr-FR')+'<br>'+(bo?bo.nom:'?')+'<br><span style=\"color:'+(m.role==='user'?'#6366f1':'#00c875')+'\">'+m.role+'</span></div>'\n          +'<div class=\"msg\">'+m.content.substring(0,200)+'</div>'\n          +'</div>';\n      });\n      document.getElementById('msgs-list').innerHTML=mh||'<div style=\"color:#444\">Aucun message</div>';\n    })\n    .catch(function(e){\n      document.getElementById('ref').textContent='Erreur: '+e.message;\n    });\n}\n\nasync function cp(btn){ var uid = btn.getAttribute('data-uid');\n  var plan=prompt('Nouveau plan (free/starter/pro/business):');\n  if(!plan)return;\n  var r=await fetch('/admin/user/'+uid+'/plan',{method:'PATCH',headers:{'Content-Type':'application/json','X-Admin-Secret':SEC},body:JSON.stringify({plan:plan})});\n  var d=await r.json();\n  if(d.success){alert('Plan mis a jour!');ld();}\n  else alert('Erreur: '+d.error);\n}\n\nld();\nsetInterval(ld,30000);\n</script>\n</body>\n</html>";
 
 app.get('/admin', (req, res) => {
@@ -8697,27 +8808,14 @@ app.get('/auth/test', (req, res) => {
 });
 
 // Reset password (admin)
-app.get('/admin/reset-password', async (req, res) => {
-  if (req.query.secret !== ADMIN_SECRET) return res.status(401).send('Non autorisé');
-  try {
-    const { email, password } = req.query;
-    if (!email || !password) return res.status(400).send('email et password requis');
-    const passHash = Buffer.from(password + CONFIG.JWT_SECRET).toString('base64');
-    await db.update('users', { password_hash: passHash }, `?email=eq.${encodeURIComponent(email)}`);
-    // Génère aussi un token direct pour tester
-    const users = await db.select('users', `?email=eq.${encodeURIComponent(email)}`);
-    const user = users?.[0];
-    const token = user ? generateToken(user.id) : null;
-    res.send(`
-      <h2>✅ Mot de passe mis à jour pour ${email}</h2>
-      <p>Token de test: <code>${token?.substring(0,30)}...</code></p>
-      <p><a href="/app?token=${token}&user=${encodeURIComponent(JSON.stringify({id:user?.id,email,nom:user?.nom,plan:user?.plan}))}">👉 Aller sur /app directement</a></p>
-      <p><a href="/login">Ou se connecter normalement</a></p>
-    `);
-  } catch(e) { res.status(500).send('Erreur: ' + e.message); }
-});
-
-
+// ROUTE SUPPRIMEE : app.get('/admin/reset-password')
+// Elle changeait le mot de passe de n'importe quel compte via une simple
+// adresse GET, puis renvoyait un jeton de session valide dans la page.
+// Le secret et le mot de passe transitaient donc en clair dans les
+// journaux de l'hebergeur, l'historique du navigateur et l'en-tete
+// Referer. Une seule fuite de journal donnait la plateforme entiere.
+// Un reset administrateur, s'il redevient necessaire, doit etre en POST,
+// avec le secret en en-tete, et ne jamais renvoyer de session.
 app.patch('/admin/bot/:id/toggle', async (req, res) => {
   if (req.headers['x-admin-secret'] !== ADMIN_SECRET)
     return res.status(401).json({ error:'Non autorisé' });
