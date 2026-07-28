@@ -287,6 +287,13 @@ async function sb(table, method='GET', data=null, query='') {
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
+// La sonde de sante lisait CONFIG.SUPABASE_KEY, qui n'existe pas : les pages
+// /health et /status annoncaient la base hors service meme quand elle
+// repondait. Meme resolution de cle que sb().
+function CLE_SUPABASE() {
+  return CONFIG.SUPABASE_SERVICE_KEY || CONFIG.SUPABASE_ANON_KEY;
+}
+
 const db = {
   select: (t,q='') => sb(t,'GET',null,q),
   insert: (t,d) => sb(t,'POST',d),
@@ -3383,8 +3390,16 @@ async function createOrderFromConfirmation(botId, sessionId, total, bot, recapTe
     const existing = await db.select('commandes', `?bot_id=eq.${botId}&session_id=eq.${sessionId}&order=created_at.desc&limit=1`);
     if (existing?.[0]) {
       const ageMs = Date.now() - new Date(existing[0].created_at).getTime();
-      if (ageMs < 60000) { // moins d'1 min: c'est probablement la même commande
-        console.log(`⚠️ Commande récente déjà créée (${existing[0].numero}), skip`);
+      const memeMontant = Number(existing[0].total) === Number(total);
+
+      // La regle ne regardait que le TEMPS : deux commandes differentes
+      // passees dans la meme minute par la meme personne, et la seconde
+      // disparaissait sans trace — le bot confirmait quand meme. On
+      // n'ecarte donc que si le montant est identique ET l'ecart tres
+      // court : un doublon technique arrive en quelques secondes, une
+      // vraie seconde commande jamais aussi vite au franc pres.
+      if (ageMs < 20000 && memeMontant) {
+        console.log(`Doublon ecarte : ${existing[0].numero}, meme total, ${Math.round(ageMs/1000)}s`);
         return;
       }
     }
@@ -5476,7 +5491,17 @@ app.get('/dashboard/:botId', async (req, res) => {
     const now = Date.now();
     const msgsToday = msgs?.filter(m=>new Date(m.created_at)>new Date(now-86400000)).length||0;
     const cmdsPending = commandes?.filter(c=>c.statut==='pending').length||0;
-    const revenuTotal = commandes?.filter(c=>c.statut==='paid').reduce((s,c)=>s+c.total,0)||0;
+    // Une commande encaissee a la livraison porte le statut 'delivered'
+    // et ne passe JAMAIS par 'paid'. Ne compter que 'paid' revenait a
+    // ecarter le mode de paiement dominant au Senegal : le patron voyait
+    // onze commandes et zero franc. Le reste du fichier comptait deja
+    // les deux (analytics, exports) — seul cet ecran divergeait.
+    const STATUTS_ENCAISSES = ['paid', 'delivered'];
+    const STATUTS_EN_COURS  = ['pending', 'preparing', 'ready', 'delivering'];
+    const revenuTotal = commandes?.filter(c=>STATUTS_ENCAISSES.includes(c.statut))
+      .reduce((s,c)=>s+(Number(c.total)||0),0)||0;
+    const revenuEnCours = commandes?.filter(c=>STATUTS_EN_COURS.includes(c.statut))
+      .reduce((s,c)=>s+(Number(c.total)||0),0)||0;
     const avgNote = allAvis?.length ? (allAvis.reduce((s,a)=>s+a.note,0)/allAvis.length).toFixed(1) : '—';
     const statusColors = {pending:'#f59e0b',paid:'#10b981',preparing:'#3b82f6',ready:'#8b5cf6',delivered:'#6b7280',cancelled:'#ef4444',delivering:'#f59e0b'};
     const statusLabels = {
@@ -5671,7 +5696,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
     <div class="stat"><div class="stat-val">${msgsToday}</div><div class="stat-lbl">${t(lang,'msgs_today')}</div></div>
     <div class="stat"><div class="stat-val" id="rdv-today-count">—</div><div class="stat-lbl">${t(lang,'rdv_today')}</div><div class="stat-sub">📅</div></div>
     <div class="stat"><div class="stat-val">${commandes?.length||0}</div><div class="stat-lbl">${t(lang,'orders')}</div><div class="stat-sub">⏳ ${cmdsPending}</div></div>
-    <div class="stat"><div class="stat-val">${(revenuTotal/1000).toFixed(0)}K</div><div class="stat-lbl">${t(lang,'revenue')}</div></div>
+    <div class="stat"><div class="stat-val">${(revenuTotal/1000).toFixed(0)}K</div><div class="stat-lbl">${t(lang,'revenue')}${revenuEnCours?` <span style="color:#9ab0a0">· ${(revenuEnCours/1000).toFixed(0)}K en cours</span>`:''}</div></div>
     <div class="stat"><div class="stat-val">${avgNote}${avgNote!=='—'?'⭐':''}</div><div class="stat-lbl">${t(lang,'avg_rating')}</div><div class="stat-sub">${allAvis?.length||0}</div></div>
   </div>
 
@@ -8465,7 +8490,9 @@ app.get('/admin/stats', async (req, res) => {
       db.select('audio_messages','?order=created_at.desc&limit=20')
     ]);
     const msgsToday = msgs?.filter(m=>new Date(m.created_at)>new Date(Date.now()-86400000)).length||0;
-    const revenu = commandes?.filter(c=>c.statut==='paid').reduce((s,c)=>s+(c.total||0),0)||0;
+    // Meme raison qu'au dashboard : 'delivered' est de l'argent encaisse.
+    const revenu = commandes?.filter(c=>c.statut==='paid'||c.statut==='delivered')
+      .reduce((s,c)=>s+(c.total||0),0)||0;
     res.json({
       stats:{ total_users:users?.length||0, total_bots:bots?.length||0, messages_today:msgsToday, total_revenue:revenu, total_audio:audio?.length||0 },
       bots:bots||[], users:users||[], recent_messages:msgs||[], commandes:commandes||[], audio_messages:audio||[]
@@ -9155,7 +9182,7 @@ app.get('/health', async (req, res) => {
   const checks = { server: true, database: false, openai: false, wasender: false };
   try {
     const t1 = Date.now();
-    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CONFIG.SUPABASE_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}` }});
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CLE_SUPABASE(), 'Authorization': `Bearer ${CLE_SUPABASE()}` }});
     checks.database = r.ok;
     checks.db_latency_ms = Date.now() - t1;
   } catch(e) { checks.database = false; }
@@ -9182,7 +9209,7 @@ app.get('/status', async (req, res) => {
   const checks = { db: false, db_ms: 0, openai: !!CONFIG.OPENAI_API_KEY, wasender: WASENDER_ENABLED && !!CONFIG.WASENDER_API_KEY };
   try {
     const t1 = Date.now();
-    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CONFIG.SUPABASE_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_KEY}` }});
+    const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/bots?select=id&limit=1`, { headers: { 'apikey': CLE_SUPABASE(), 'Authorization': `Bearer ${CLE_SUPABASE()}` }});
     checks.db = r.ok;
     checks.db_ms = Date.now() - t1;
   } catch(e) {}
