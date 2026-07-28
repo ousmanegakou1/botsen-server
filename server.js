@@ -169,6 +169,19 @@ const CONFIG = {
   WASENDER_API_KEY:     process.env.WASENDER_API_KEY,
   WASENDER_SESSION_ID:  process.env.WASENDER_SESSION_ID,
   JWT_SECRET:           process.env.JWT_SECRET,
+  // PIEGE A CONNAITRE : l'empreinte des mots de passe etait calculee
+  // avec JWT_SECRET. Changer JWT_SECRET rendait donc TOUS les mots de
+  // passe invalides d'un coup — plus personne ne pouvait se connecter,
+  // y compris l'administrateur.
+  //
+  // Les deux usages sont desormais separes. Ce poivre garde la valeur
+  // historique par defaut pour que les comptes existants continuent de
+  // fonctionner ; JWT_SECRET peut donc etre remplace librement (les
+  // sessions en cours sont invalidees, ce qui est voulu).
+  //
+  // A REPRENDRE : ce n'est toujours pas un hachage, c'est un encodage
+  // reversible. Migration bcrypt a faire, au prochain login reussi.
+  PASSWORD_PEPPER:      process.env.PASSWORD_PEPPER || 'samabot_jwt_secret_2025',
   GOOGLE_CLIENT_ID:     process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   // Stripe pour facturation SaaS
@@ -2807,7 +2820,7 @@ app.post('/auth/register', async (req, res) => {
     if (!email||!password) return res.status(400).json({ error:'email et password requis' });
     const existing = await db.select('users', `?email=eq.${encodeURIComponent(email)}`);
     if (existing?.length) return res.status(409).json({ error:'Email déjà utilisé' });
-    const passHash = Buffer.from(password + CONFIG.JWT_SECRET).toString('base64');
+    const passHash = Buffer.from(password + CONFIG.PASSWORD_PEPPER).toString('base64');
     const user = await db.insert('users', { email, nom:nom||email.split('@')[0], plan:'free', actif:true, password_hash:passHash });
     if (!user?.[0]) return res.status(500).json({ error:'Erreur création compte' });
     const token = generateToken(user[0].id);
@@ -2823,7 +2836,7 @@ app.post('/auth/login', async (req, res) => {
     const users = await db.select('users', `?email=eq.${encodeURIComponent(email)}`);
     if (!users?.length) return res.status(401).json({ error:'Email ou mot de passe incorrect' });
     const user = users[0];
-    const passHash = Buffer.from(password + CONFIG.JWT_SECRET).toString('base64');
+    const passHash = Buffer.from(password + CONFIG.PASSWORD_PEPPER).toString('base64');
     if (user.password_hash !== passHash) return res.status(401).json({ error:'Email ou mot de passe incorrect' });
     const token = generateToken(user.id);
     res.json({ success:true, token, user:{ id:user.id, email:user.email, nom:user.nom, plan:user.plan } });
