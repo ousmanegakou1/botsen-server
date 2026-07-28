@@ -880,12 +880,34 @@ app.post('/chat', async (req, res) => {
     const history = getHist(sid);
     const assistantMsgs = history.filter(h => h.role === 'assistant');
     const previousBotMsg = assistantMsgs.length >= 2 ? assistantMsgs[assistantMsgs.length - 2] : null;
-    // 🔒 v10.8: Récap STRICT — doit contenir total + confirmez/récap (pas juste un mot)
-    const lastBotHadRecap = previousBotMsg && (
-      /récapitulatif|recapitulatif/i.test(previousBotMsg.content) &&
-      /total\s*[:\-]?\s*\*?\s*\d/i.test(previousBotMsg.content) &&
-      /confirmez|valider|valid[eé]|oui pour valider/i.test(previousBotMsg.content)
-    );
+    // Un recapitulatif se reconnait a ce qu'il CONTIENT, pas au vocabulaire
+    // que le modele a choisi ce jour-la.
+    //
+    // L'ancienne regle exigeait le mot « recapitulatif ». Or le modele
+    // ecrit le plus souvent : « Donc cafe arabica, 6 000 F livraison
+    // comprise, au nom de X a Y. Je valide ? » — un recapitulatif
+    // parfait, qui ne contient jamais ce mot. La condition tombait donc
+    // a faux, aucune commande n'etait creee, et le bot repondait quand
+    // meme au client « C'est note, livraison dans 30-45 min ».
+    //
+    // Consequence mesuree : plus aucune commande enregistree entre le
+    // 22 mai et le 28 juillet, alors que le parcours se deroulait
+    // normalement a l'ecran. Le client croyait avoir commande, le
+    // commercant n'a jamais rien vu.
+    //
+    // On exige donc deux faits verifiables : un MONTANT, et une demande
+    // explicite de VALIDATION. Le point d'interrogation seul ne suffit
+    // pas : « Cafe arabica : 5 000 FCFA. Quel produit souhaitez-vous ? »
+    // porte un montant et une question, mais n'est pas un recapitulatif.
+    const RECAP_MONTANT = /\b\d[\d\s]{2,}\s*(?:f|fcfa)\b/i;
+    const RECAP_VALIDATION = /\b(?:confirmez|confirmer|je\s+valide|on\s+valide|valide[rz]\b|je\s+confirme|c'est\s+bon\s*\?|est-ce\s+correct|c'est\s+bien\s+(?:ca|cela|\u00e7a))/i;
+    const estUnRecap = (txt) => !!txt && RECAP_MONTANT.test(txt) && RECAP_VALIDATION.test(txt);
+
+    // On regarde les deux derniers messages du bot : selon le moment ou
+    // la reponse courante est ajoutee a l'historique, le recapitulatif
+    // est tantot l'avant-dernier, tantot le dernier.
+    const dernierBotMsg = assistantMsgs.length >= 1 ? assistantMsgs[assistantMsgs.length - 1] : null;
+    const lastBotHadRecap = estUnRecap(previousBotMsg?.content) || estUnRecap(dernierBotMsg?.content);
 
     // Affiche les boutons paiement quand on a un total
     // 🔒 v10.8: Boutons paiement UNIQUEMENT si le bot a explicitement confirmé la commande
