@@ -5901,7 +5901,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
       <p style="font-size:13px;color:#5a7060;margin-bottom:14px">Gérez les produits/services que votre bot peut proposer aux clients.</p>
 
       <div id="cat-add-form" style="display:none;background:#f0f4f1;border-radius:10px;padding:16px;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:10px">Nouveau produit</div>
+        <div id="cat-form-titre" style="font-size:13px;font-weight:700;color:#0a1a0f;margin-bottom:10px">Nouveau produit</div>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
           <input id="cat-new-nom" placeholder="Nom du produit *" style="padding:9px 12px;border:1.5px solid #d1e5d8;border-radius:8px;font-size:13px;font-family:inherit"/>
           <input id="cat-new-prix" type="number" min="0" placeholder="Prix FCFA *" style="padding:9px 12px;border:1.5px solid #d1e5d8;border-radius:8px;font-size:13px;font-family:inherit"/>
@@ -5917,7 +5917,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--d-info)}
         </div>
         <input type="hidden" id="cat-new-img-url"/>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-p" onclick="catAddSubmit()">💾 Ajouter</button>
+          <button class="btn btn-p" id="cat-form-submit" onclick="catAddSubmit()">💾 Ajouter</button>
           <button class="btn btn-g" onclick="catCloseAdd()">Annuler</button>
         </div>
         <div id="cat-add-result" style="display:none;margin-top:10px;padding:8px 12px;border-radius:8px;font-size:13px"></div>
@@ -6401,7 +6401,18 @@ async function catLoad(){
   }
 }
 
+// null = creation, un entier = modification du produit d'index donne.
+// Le meme formulaire sert aux deux : la modification passait par trois
+// prompt() successifs, qui ne peuvent pas porter de photo. C'est pour
+// cela qu'il etait impossible de changer l'image d'un produit — la
+// fonction ne la demandait jamais, alors que le serveur savait deja la
+// recevoir.
+var catEditIdx = null;
+
 function catOpenAdd(){
+  catEditIdx = null;
+  document.getElementById('cat-form-titre').textContent='Nouveau produit';
+  document.getElementById('cat-form-submit').textContent='Ajouter';
   document.getElementById('cat-add-form').style.display='block';
   document.getElementById('cat-new-nom').value='';
   document.getElementById('cat-new-prix').value='';
@@ -6446,11 +6457,15 @@ async function catAddSubmit(){
     return;
   }
   try{
-    var r=await fetch('/catalogue/'+BID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom,prix:prix,desc:desc,image:image,emoji:emoji})});
+    // Le serveur accepte deja image et emoji sur les deux routes : seule
+    // l'interface ne les proposait pas en modification.
+    var enEdition = (catEditIdx !== null);
+    var url = enEdition ? ('/catalogue/'+BID+'/'+catEditIdx) : ('/catalogue/'+BID);
+    var r=await fetch(url,{method: enEdition ? 'PATCH' : 'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom,prix:prix,desc:desc,image:image,emoji:emoji})});
     var d=await r.json();
     if(d.success){
       res.style.display='block';res.style.background='#dcfce7';res.style.color='#166534';
-      res.textContent='✅ Produit ajouté! Total: '+d.total;
+      res.textContent = enEdition ? 'Produit modifié' : ('Produit ajouté. Total : '+d.total);
       catLoad();
       setTimeout(function(){catCloseAdd();},800);
     }else{
@@ -6469,19 +6484,26 @@ async function catEdit(idx){
     var d=await r.json();
     var p=(d.catalogue||[])[idx];
     if(!p){alert('Produit introuvable');return;}
-    var nouveauNom=prompt('Nom du produit:',p.nom);
-    if(nouveauNom===null)return;
-    var nouveauPrix=prompt('Prix (FCFA):',p.prix);
-    if(nouveauPrix===null)return;
-    var nouveauDesc=prompt('Description (optionnelle):',p.desc||'');
-    if(nouveauDesc===null)return;
-    var resp=await fetch('/catalogue/'+BID+'/'+idx,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nouveauNom,prix:nouveauPrix,desc:nouveauDesc})});
-    var data=await resp.json();
-    if(data.success){catLoad();}
-    else{alert('Erreur: '+(data.error||'inconnu'));}
+
+    catEditIdx = idx;
+    document.getElementById('cat-form-titre').textContent='Modifier le produit';
+    document.getElementById('cat-form-submit').textContent='Enregistrer';
+    document.getElementById('cat-new-nom').value=p.nom||'';
+    document.getElementById('cat-new-prix').value=p.prix||'';
+    document.getElementById('cat-new-desc').value=p.desc||'';
+    document.getElementById('cat-new-emoji').value=p.emoji||'';
+    document.getElementById('cat-new-img-url').value=p.image||'';
+
+    var prev=document.getElementById('cat-new-img-preview');
+    if(p.image){prev.src=p.image;prev.style.display='block';}
+    else{prev.style.display='none';}
+
+    document.getElementById('cat-add-result').style.display='none';
+    document.getElementById('cat-add-form').style.display='block';
+    document.getElementById('cat-add-form').scrollIntoView({behavior:'smooth',block:'nearest'});
+    setTimeout(function(){document.getElementById('cat-new-nom').focus();},100);
   }catch(e){alert('Erreur: '+e.message);}
 }
-
 async function catDelete(idx){
   if(!confirm('Supprimer ce produit du catalogue?'))return;
   try{
